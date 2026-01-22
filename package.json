@@ -1,0 +1,12 @@
+{
+  "name": "flow-list",
+  "version": "1.0.0",
+  "description": "An array extension.",
+  "license": "MIT",
+  "author": "Adam Allison",
+  "type": "module",
+  "main": "index.ts",
+  "scripts": {
+    "test": "vitest"
+  }
+}
