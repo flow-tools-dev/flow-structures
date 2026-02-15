@@ -8,5 +8,9 @@
   "main": "index.ts",
   "scripts": {
     "test": "vitest"
+  },
+  "devDependencies": {
+    "tsdown": "^0.20.1",
+    "vitest": "^4.0.18"
   }
 }

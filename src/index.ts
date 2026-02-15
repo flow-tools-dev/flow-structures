@@ -16,16 +16,16 @@ class FlowList<T> {
     return this.array.length;
   }
 
+  entries(): IterableIterator<[number, T]> {
+    return this.array.entries();
+  }
+
   keys(): IterableIterator<number> {
     return this.array.keys();
   }
 
   values(): IterableIterator<T> {
     return this.array.values();
-  }
-
-  entries(): IterableIterator<[number, T]> {
-    return this.array.entries();
   }
 
   pop() {
@@ -46,6 +46,22 @@ class FlowList<T> {
 
   map<U>(fn: (value: T, index: number, list: FlowList<T>) => U): FlowList<U> {
     return FlowList.of<U>(this.array.map((v, i) => fn(v, i, this)));
+  }
+
+  fill(v: T, start: number, end: number): FlowList<T> {
+    return FlowList.of<T>(this.array.fill(v, start, end));
+  }
+
+  toFilled<U>(
+    v: U,
+    start: number = 0,
+    end: number = this.length,
+  ): FlowList<T | U> {
+    return FlowList.of<T | U>(
+      this.array.map<T | U>((el: T, i: number) =>
+        i >= start && i < end ? v : el,
+      ),
+    );
   }
 
   flatMap<U>(
@@ -106,7 +122,7 @@ class FlowList<T> {
     return this.array.at(index);
   }
 
-  toReverse() {
+  toReversed() {
     return FlowList.of<T>(this.array.toReversed());
   }
 
