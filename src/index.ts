@@ -1,11 +1,18 @@
+type Predicate<T> = (value: T, index: number, list: FlowList<T>) => boolean;
+
 class FlowList<T> {
   private array: T[];
   constructor(array: T[]) {
     this.array = array;
   }
 
-  static of<T>(items: T[]) {
-    return new FlowList(items);
+  static of<T>(v: T[]) {
+    return new FlowList(v);
+  }
+
+  static from<T>(source: Iterable<T> | ArrayLike<T> | FlowList<T>) {
+    if (source instanceof FlowList) return new FlowList(source.toArray());
+    return new FlowList(Array.from(source as ArrayLike<T>));
   }
 
   static isFlowList(item: any) {
@@ -40,12 +47,26 @@ class FlowList<T> {
     return this.array.shift();
   }
 
+  join(s: string) {
+    return this.array.join(s);
+  }
+
   unshift(...items: T[]) {
     return this.array.unshift(...items);
   }
 
   map<U>(fn: (value: T, index: number, list: FlowList<T>) => U): FlowList<U> {
     return FlowList.of<U>(this.array.map((v, i) => fn(v, i, this)));
+  }
+
+  forEach(fn: (value: T, index: number, list: FlowList<T>) => void) {
+    this.array.forEach((el: T, i: number) => fn(el, i, this));
+  }
+
+  forEachRight(fn: (value: T, index: number, list: FlowList<T>) => void) {
+    for (let i = this.array.length - 1; i >= 0; i--) {
+      fn(this.array[i], i, this);
+    }
   }
 
   fill(v: T, start: number, end: number): FlowList<T> {
@@ -81,10 +102,16 @@ class FlowList<T> {
     return FlowList.of<U>(out);
   }
 
-  filter(
-    predicate: (value: T, index: number, list: FlowList<T>) => boolean,
-  ): FlowList<T> {
+  filter(predicate: Predicate<T>): FlowList<T> {
     return FlowList.of(this.array.filter((v, i) => predicate(v, i, this)));
+  }
+
+  filterNot(predicate: Predicate<T>) {
+    return FlowList.of(this.array.filter((v, i) => !predicate(v, i, this)));
+  }
+
+  tally(predicate: Predicate<T>) {
+    return this.array.filter((el, i) => predicate(el, i, this)).length;
   }
 
   reduce<U>(
@@ -94,24 +121,36 @@ class FlowList<T> {
     return this.array.reduce((acc, curr, i) => fn(acc, curr, i, this), init);
   }
 
-  some(fn: (value: T, index: number, list: FlowList<T>) => boolean): boolean {
+  some(fn: Predicate<T>): boolean {
     return this.array.some((v, i) => fn(v, i, this));
   }
 
-  every(fn: (value: T, index: number, list: FlowList<T>) => boolean): boolean {
+  every(fn: Predicate<T>): boolean {
     return this.array.every((v, i) => fn(v, i, this));
   }
 
-  find(
-    fn: (value: T, index: number, list: FlowList<T>) => boolean,
-  ): T | undefined {
+  find(fn: Predicate<T>): T | undefined {
     return this.array.find((v, i) => fn(v, i, this));
   }
 
-  findIndex(
-    fn: (value: T, index: number, list: FlowList<T>) => boolean,
-  ): number {
+  findLast(fn: Predicate<T>) {
+    return this.array.findLast((v, i) => fn(v, i, this));
+  }
+
+  findLastIndex(fn: Predicate<T>) {
+    return this.array.findLastIndex((v, i) => fn(v, i, this));
+  }
+
+  lastIndexOf(v: T) {
+    return this.array.lastIndexOf(v);
+  }
+
+  findIndex(fn: Predicate<T>): number {
     return this.array.findIndex((v, i) => fn(v, i, this));
+  }
+
+  indexOf(el: T, start: number) {
+    return this.array.indexOf(el, start);
   }
 
   includes(value: T): boolean {
@@ -130,6 +169,10 @@ class FlowList<T> {
     return FlowList.of<T>(this.array.toSorted(fn));
   }
 
+  with(i: number, v: T) {
+    return FlowList.of<T>(this.array.with(i, v));
+  }
+
   toSpliced(start: number, deleteCount?: number, ...items: T[]): FlowList<T> {
     // @ts-expect-error
     return FlowList.of<T>(this.array.toSpliced(start, deleteCount, ...items));
@@ -137,6 +180,67 @@ class FlowList<T> {
 
   slice(start?: number, end?: number): FlowList<T> {
     return FlowList.of<T>(this.array.slice(start, end));
+  }
+
+  take(n: number) {
+    if (n <= 0) return FlowList.of<T>([]);
+    return FlowList.of<T>(this.array.slice(0, n));
+  }
+
+  takeWhile(predicate: Predicate<T>) {
+    const take = [];
+    for (let i = 0; i <= this.array.length - 1; i++) {
+      if (!predicate(this.array[i], i, this)) break;
+      take.push(this.array[i]);
+    }
+    return FlowList.of<T>(take);
+  }
+
+  takeRight(n: number) {
+    if (n <= 0) return FlowList.of<T>([]);
+    return FlowList.of<T>(this.array.slice(-n));
+  }
+
+  takeRightWhile(predicate: Predicate<T>) {
+    const take = [];
+    for (let i = this.array.length - 1; i >= 0; i--) {
+      if (!predicate(this.array[i], i, this)) break;
+      take.push(this.array[i]);
+    }
+    return FlowList.of<T>(take.toReversed());
+  }
+
+  drop(n: number) {
+    if (n <= 0) return this;
+    return this.slice(n);
+  }
+
+  dropWhile(predicate: Predicate<T>) {
+    const keep: T[] = [];
+    let drop = true;
+    this.array.forEach((el, i) => {
+      if (drop && predicate(el, i, this)) return;
+      drop = false;
+      keep.push(el);
+    });
+    return FlowList.of<T>(keep);
+  }
+
+  dropRight(n: number) {
+    if (n <= 0) return this;
+    return FlowList.of<T>(this.array.slice(0, -n));
+  }
+
+  dropRightWhile(predicate: Predicate<T>) {
+    const keep: T[] = [];
+    let drop = true;
+    const l = this.array.length - 1;
+    this.array.toReversed().forEach((el, i) => {
+      if (drop && predicate(el, l - i, this)) return;
+      drop = false;
+      keep.push(el);
+    });
+    return FlowList.of<T>(keep.toReversed());
   }
 
   concat(...items: ConcatArray<T>[]): FlowList<T> {
@@ -174,20 +278,44 @@ class FlowList<T> {
     return FlowList.of<T[]>(agg);
   }
 
+  chunk(n: number) {
+    return this.batch(n);
+  }
+
   compact() {
     return FlowList.of<T>(this.array.filter(Boolean));
   }
 
-  dedupe() {
+  uniq() {
     return FlowList.of<T>(Array.from(new Set(this.array)));
+  }
+
+  uniqBy<K extends keyof T>(prop: K) {
+    const seen = new Set<T[K]>();
+    const arr = this.array.reduce((acc, curr, i) => {
+      if (!seen.has(curr[prop])) {
+        acc.push(curr);
+        seen.add(curr[prop]);
+      }
+      return acc;
+    }, [] as T[]);
+    return FlowList.of<T>(arr);
   }
 
   head() {
     return this.array[0];
   }
 
+  toHead() {
+    return FlowList.of<T>([this.array[0]]);
+  }
+
   tail() {
     return this.array[this.array.length - 1];
+  }
+
+  toTail() {
+    return FlowList.of<T>([this.array[this.array.length - 1]]);
   }
 
   difference(...arrs: T[][]) {
@@ -204,12 +332,10 @@ class FlowList<T> {
   }
 
   union(...arrs: T[][]) {
-    return FlowList.of([...this.array, ...arrs.flat()]).dedupe();
+    return FlowList.of([...this.array, ...arrs.flat()]).uniq();
   }
 
-  partition(
-    predicate: (value: T, index: number, list: FlowList<T>) => boolean,
-  ): FlowList<T[]> {
+  partition(predicate: Predicate<T>): FlowList<T[]> {
     const pass: T[] = [];
     const fail: T[] = [];
 
@@ -219,6 +345,24 @@ class FlowList<T> {
     return FlowList.of<T[]>([pass, fail]);
   }
 
+  zip<U>(...lists: (FlowList<U> | U[])[]): FlowList<[T, ...U[]]> {
+    // normalize everything to arrays
+    const allArrays: unknown[][] = [
+      this.array,
+      ...lists.map((l) => (l instanceof FlowList ? l.toArray() : l)),
+    ];
+
+    const maxLen = Math.max(...allArrays.map((a) => a.length));
+    const zipped: [T, ...U[]][] = [];
+
+    for (let i = 0; i < maxLen; i++) {
+      // map each array to its i-th element
+      zipped.push(allArrays.map((a) => a[i]) as [T, ...U[]]);
+    }
+
+    return FlowList.of(zipped);
+  }
+
   toArray() {
     return this.array;
   }
@@ -226,5 +370,3 @@ class FlowList<T> {
 const q = FlowList.of([1, 2]).toSorted().batch(2).flat().batch(2);
 const a = [1, 2, 3];
 const b = [4, 5, 6];
-
-console.log(q);
