@@ -141,6 +141,10 @@ export class FlowList<T> {
     );
   }
 
+  insert(index: number, ...items: T[]): FlowList<T> {
+    return FlowList.of(this.array.toSpliced(index, 0, ...items));
+  }
+
   some(fn: Predicate<T>): boolean {
     return this.array.some((v, i) => fn(v, i, this));
   }

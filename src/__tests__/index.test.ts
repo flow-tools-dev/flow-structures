@@ -130,7 +130,7 @@ describe('FlowList - reductions', () => {
 });
 
 describe('FlowList - slicing, take/drop, with, splicing', () => {
-  it('slice, take, takeRight, drop, dropRight, with, toSpliced', () => {
+  it('slice, take, takeRight, drop, dropRight, with, toSpliced, insert', () => {
     const a = FlowList.of([1, 2, 3, 4, 5]);
     expect(a.slice(1, 4).toArray()).toEqual([2, 3, 4]);
     expect(a.take(3).toArray()).toEqual([1, 2, 3]);
@@ -138,12 +138,16 @@ describe('FlowList - slicing, take/drop, with, splicing', () => {
     expect(a.drop(2).toArray()).toEqual([3, 4, 5]);
     expect(a.dropRight(2).toArray()).toEqual([1, 2, 3]);
     expect(a.with(1, 99).toArray()).toEqual([1, 99, 3, 4, 5]);
+    expect(a.toArray()).toEqual([1, 2, 3, 4, 5]);
 
     // toSpliced may be available; test basic insertion/removal behavior if present
     const spliced = a.toSpliced(2, 1, 7, 8);
     expect(spliced.toArray()).toEqual([1, 2, 7, 8, 4, 5]);
     // original unchanged
     expect(a.toArray()).toEqual([1, 2, 3, 4, 5]);
+    expect(a.insert(1, 55, 43, 56).toArray()).toEqual([
+      1, 55, 43, 56, 2, 3, 4, 5,
+    ]);
   });
 
   it('toIndex handles positive, negative and out-of-range', () => {
