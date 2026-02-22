@@ -1,4 +1,8 @@
-type Predicate<T> = (value: T, index: number, list: FlowList<T>) => boolean;
+export type Predicate<T> = (
+  value: T,
+  index: number,
+  list: FlowList<T>,
+) => boolean;
 
 class FlowList<T> {
   private array: T[];
@@ -12,7 +16,7 @@ class FlowList<T> {
 
   static from<T>(source: Iterable<T> | ArrayLike<T> | FlowList<T>) {
     if (source instanceof FlowList) return new FlowList(source.toArray());
-    return new FlowList(Array.from(source as ArrayLike<T>));
+    return FlowList.of<T>(Array.from(source as ArrayLike<T>));
   }
 
   static isFlowList(item: any) {
@@ -247,9 +251,22 @@ class FlowList<T> {
     return FlowList.of(this.array.concat(...items));
   }
 
-  flat(depth?: number): FlowList<T> {
-    // @ts-expect-error
-    return FlowList.of<T>(this.array.flat(depth));
+  flat(depth: number = 1): FlowList<any> {
+    const result: any[] = [];
+
+    const flatten = (items: any[], currentDepth: number) => {
+      for (const item of items) {
+        const isFlow = FlowList.isFlowList(item);
+        if (currentDepth > 0 && (Array.isArray(item) || isFlow)) {
+          const next = isFlow ? item.toArray() : item;
+          flatten(next, currentDepth - 1);
+        } else {
+          result.push(item);
+        }
+      }
+    };
+    flatten(this.array, depth);
+    return FlowList.of(result);
   }
 
   [Symbol.iterator](): Iterator<T> {
@@ -307,7 +324,23 @@ class FlowList<T> {
   }
 
   toHead() {
-    return FlowList.of<T>([this.array[0]]);
+    return FlowList.of<T>(this.array.length ? [this.array[0]] : []);
+  }
+
+  toIndex(n: number) {
+    if (n >= 0 && n < this.array.length) return FlowList.of<T>([this.array[n]]);
+    if (n < 0 && n >= -this.array.length)
+      return FlowList.of<T>([this.array[this.array.length + n]]);
+    return FlowList.of<T>([]);
+  }
+
+  tap(fn: (value: T, index: number, list: FlowList<T>) => FlowList<T>) {
+    return FlowList.of<T>(
+      this.array.map((el, idx) => {
+        fn(el, idx, this);
+        return el;
+      }),
+    );
   }
 
   tail() {
@@ -315,15 +348,19 @@ class FlowList<T> {
   }
 
   toTail() {
-    return FlowList.of<T>([this.array[this.array.length - 1]]);
+    return FlowList.of<T>(
+      this.array.length ? [this.array[this.array.length - 1]] : [],
+    );
   }
 
-  difference(...arrs: T[][]) {
-    const set = new Set(arrs.flat());
+  difference(...lists: (T[] | FlowList<T>)[]) {
+    const set = FlowList.of([this.array, ...lists])
+      .flatMap((a) => a)
+      .toSet();
     return FlowList.of<T>(this.array.filter((el) => !set.has(el)));
   }
 
-  xor(...arrs: T[][]) {
+  xor(...arrs: (T[] | FlowList<T>)[]) {
     const sets = [this.array, ...arrs].map((a) => new Set(a));
     const result = sets
       .flatMap((s) => [...s])
@@ -331,8 +368,11 @@ class FlowList<T> {
     return FlowList.of<T>(result);
   }
 
-  union(...arrs: T[][]) {
-    return FlowList.of([...this.array, ...arrs.flat()]).uniq();
+  union(...lists: (T[] | FlowList<T>)[]) {
+    const allLists = [this.array, ...lists].flatMap((a) =>
+      FlowList.isFlowList(a) ? a.toArray() : a,
+    );
+    return FlowList.of(allLists).uniq();
   }
 
   partition(predicate: Predicate<T>): FlowList<T[]> {
@@ -363,10 +403,35 @@ class FlowList<T> {
     return FlowList.of(zipped);
   }
 
+  groupBy(fn: (value: T, index: number, list: FlowList<T>) => PropertyKey) {
+    const results = this.array.reduce<Record<PropertyKey, T[]>>(
+      (acc, curr, i) => {
+        const key = fn(curr, i, this);
+        if (!(key in acc)) acc[key] = [];
+        acc[key].push(curr);
+        return acc;
+      },
+      {},
+    );
+    return FlowList.of<[PropertyKey, T[]]>(Object.entries(results));
+  }
+
+  sortBy<U>(fn: (value: T, list: FlowList<T>) => U): FlowList<T> {
+    return FlowList.of(
+      this.array.toSorted((a, b) => {
+        const ka = fn(a, this);
+        const kb = fn(b, this);
+        if (ka < kb) return -1;
+        if (ka > kb) return 1;
+        return 0;
+      }),
+    );
+  }
+
   toArray() {
     return this.array;
   }
+  toSet() {
+    return new Set(this.array);
+  }
 }
-const q = FlowList.of([1, 2]).toSorted().batch(2).flat().batch(2);
-const a = [1, 2, 3];
-const b = [4, 5, 6];
