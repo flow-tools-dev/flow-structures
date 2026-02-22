@@ -4,7 +4,7 @@ export type Predicate<T> = (
   list: FlowList<T>,
 ) => boolean;
 
-class FlowList<T> {
+export class FlowList<T> {
   private array: T[];
   constructor(array: T[]) {
     this.array = array;
@@ -15,7 +15,7 @@ class FlowList<T> {
   }
 
   static from<T>(source: Iterable<T> | ArrayLike<T> | FlowList<T>) {
-    if (source instanceof FlowList) return new FlowList(source.toArray());
+    if (source instanceof FlowList) return FlowList.of<T>(source.toArray());
     return FlowList.of<T>(Array.from(source as ArrayLike<T>));
   }
 
@@ -106,12 +106,19 @@ class FlowList<T> {
     return FlowList.of<U>(out);
   }
 
+  copyWithin(target: number, start: number, end?: number) {
+    return FlowList.of<T>(this.array.copyWithin(target, start, end));
+  }
+  toCopiedWithin(target: number, start: number, end?: number) {
+    return FlowList.of<T>([...this.array].copyWithin(target, start, end));
+  }
+
   filter(predicate: Predicate<T>): FlowList<T> {
-    return FlowList.of(this.array.filter((v, i) => predicate(v, i, this)));
+    return FlowList.of<T>(this.array.filter((v, i) => predicate(v, i, this)));
   }
 
   filterNot(predicate: Predicate<T>) {
-    return FlowList.of(this.array.filter((v, i) => !predicate(v, i, this)));
+    return FlowList.of<T>(this.array.filter((v, i) => !predicate(v, i, this)));
   }
 
   tally(predicate: Predicate<T>) {
@@ -123,6 +130,15 @@ class FlowList<T> {
     init: U,
   ): U {
     return this.array.reduce((acc, curr, i) => fn(acc, curr, i, this), init);
+  }
+  reduceRight<U>(
+    fn: (acc: U, curr: T, index: number, list: FlowList<T>) => U,
+    init: U,
+  ): U {
+    return this.array.reduceRight(
+      (acc, curr, i) => fn(acc, curr, i, this),
+      init,
+    );
   }
 
   some(fn: Predicate<T>): boolean {
@@ -251,10 +267,10 @@ class FlowList<T> {
     return FlowList.of(this.array.concat(...items));
   }
 
-  flat(depth: number = 1): FlowList<any> {
-    const result: any[] = [];
+  flat(depth: number = 1) {
+    const result: T[] = [];
 
-    const flatten = (items: any[], currentDepth: number) => {
+    const flatten = (items: T[], currentDepth: number) => {
       for (const item of items) {
         const isFlow = FlowList.isFlowList(item);
         if (currentDepth > 0 && (Array.isArray(item) || isFlow)) {
@@ -266,7 +282,7 @@ class FlowList<T> {
       }
     };
     flatten(this.array, depth);
-    return FlowList.of(result);
+    return FlowList.of<T>(result);
   }
 
   [Symbol.iterator](): Iterator<T> {
@@ -281,7 +297,7 @@ class FlowList<T> {
     return FlowList.of<T>([...items, ...this.array]);
   }
 
-  batch(n: number) {
+  chunk(n: number) {
     const agg: T[][] = [];
     let chunk: T[] = [];
     this.array.forEach((el) => {
@@ -293,10 +309,6 @@ class FlowList<T> {
     });
     if (chunk.length) agg.push(chunk);
     return FlowList.of<T[]>(agg);
-  }
-
-  chunk(n: number) {
-    return this.batch(n);
   }
 
   compact() {
@@ -334,7 +346,7 @@ class FlowList<T> {
     return FlowList.of<T>([]);
   }
 
-  tap(fn: (value: T, index: number, list: FlowList<T>) => FlowList<T>) {
+  tap(fn: (value: T, index: number, list: FlowList<T>) => void) {
     return FlowList.of<T>(
       this.array.map((el, idx) => {
         fn(el, idx, this);
@@ -354,10 +366,10 @@ class FlowList<T> {
   }
 
   difference(...lists: (T[] | FlowList<T>)[]) {
-    const set = FlowList.of([this.array, ...lists])
+    const exclude = FlowList.of(lists)
       .flatMap((a) => a)
       .toSet();
-    return FlowList.of<T>(this.array.filter((el) => !set.has(el)));
+    return FlowList.of<T>(this.array.filter((el) => !exclude.has(el)));
   }
 
   xor(...arrs: (T[] | FlowList<T>)[]) {
@@ -429,9 +441,20 @@ class FlowList<T> {
   }
 
   toArray() {
-    return this.array;
+    return [...this.array];
   }
+
   toSet() {
-    return new Set(this.array);
+    return new Set<T>(this.array);
+  }
+
+  toMap() {
+    return new Map(this.array as [PropertyKey, T][]);
+  }
+
+  toObject() {
+    return Object.fromEntries<T>(this.array as [PropertyKey, T][]);
   }
 }
+
+export default <T>(v: T[]) => FlowList.of(v);
