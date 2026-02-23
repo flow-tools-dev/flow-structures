@@ -4,6 +4,12 @@ export type Predicate<T> = (
   list: FlowList<T>,
 ) => boolean;
 
+export type ListCallback<T, R> = (
+  value: T,
+  index: number,
+  list: FlowList<T>,
+) => R;
+
 export class FlowList<T> {
   private array: T[];
   constructor(array: T[]) {
@@ -63,11 +69,11 @@ export class FlowList<T> {
     return FlowList.of<U>(this.array.map((v, i) => fn(v, i, this)));
   }
 
-  forEach(fn: (value: T, index: number, list: FlowList<T>) => void) {
+  forEach(fn: ListCallback<T, void>) {
     this.array.forEach((el: T, i: number) => fn(el, i, this));
   }
 
-  forEachRight(fn: (value: T, index: number, list: FlowList<T>) => void) {
+  forEachRight(fn: ListCallback<T, void>) {
     for (let i = this.array.length - 1; i >= 0; i--) {
       fn(this.array[i], i, this);
     }
@@ -89,9 +95,7 @@ export class FlowList<T> {
     );
   }
 
-  flatMap<U>(
-    fn: (value: T, index: number, list: FlowList<T>) => U | U[] | FlowList<U>,
-  ): FlowList<U> {
+  flatMap<U>(fn: ListCallback<T, U | U[] | FlowList<U>>): FlowList<U> {
     const out: U[] = [];
     this.array.forEach((value, index) => {
       const r = fn(value, index, this);
@@ -350,7 +354,7 @@ export class FlowList<T> {
     return FlowList.of<T>([]);
   }
 
-  tap(fn: (value: T, index: number, list: FlowList<T>) => void) {
+  tap(fn: ListCallback<T, void>) {
     return FlowList.of<T>(
       this.array.map((el, idx) => {
         fn(el, idx, this);
@@ -419,7 +423,7 @@ export class FlowList<T> {
     return FlowList.of(zipped);
   }
 
-  groupBy(fn: (value: T, index: number, list: FlowList<T>) => PropertyKey) {
+  groupBy(fn: ListCallback<T, PropertyKey>) {
     const results = this.array.reduce<Record<PropertyKey, T[]>>(
       (acc, curr, i) => {
         const key = fn(curr, i, this);
