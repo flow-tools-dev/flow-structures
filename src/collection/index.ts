@@ -1,11 +1,11 @@
-type Entry<K, V> = readonly [K, V];
+export type Entry<K, V> = readonly [K, V];
 type FlowCallback<K, V, R> = (
   value: V,
   key: K,
   collection: FlowCollection<K, V>,
 ) => R;
 
-type Source<K, V> =
+export type Source<K, V> =
   | Iterable<readonly [K, V]>
   | (K extends PropertyKey ? Record<K, V> : never);
 
@@ -33,6 +33,11 @@ export class FlowCollection<K, V> {
     return v instanceof FlowCollection;
   }
 
+  static from<K extends PropertyKey, V>(
+    source: Record<K, V>,
+  ): FlowCollection<K, V>;
+  static from<K, V>(source: Iterable<readonly [K, V]>): FlowCollection<K, V>;
+  static from<K, V>(source: Source<K, V>): FlowCollection<K, V>;
   static from<K, V>(source: Source<K, V>) {
     const src = isPlainObject(source) ? Object.entries(source) : source;
     return FlowCollection.of<K, V>(src as Iterable<Entry<K, V>>);
@@ -57,6 +62,10 @@ export class FlowCollection<K, V> {
 
   with(key: K, value: V) {
     return new FlowCollection<K, V>(new Map(this.collection).set(key, value));
+  }
+
+  prepend(key: K, value: V) {
+    return FlowCollection.of([[key, value], ...this.collection.entries()]);
   }
 
   without(key: K) {
@@ -96,12 +105,16 @@ export class FlowCollection<K, V> {
     ]);
   }
 
-  flatMap(fn: FlowCallback<K, V, Source<K, V>>): FlowCollection<K, V> {
-    const m = new Map<K, V>();
+  flatMap<NK, NV>(
+    fn: FlowCallback<K, V, Source<NK, NV>>,
+  ): FlowCollection<NK, NV> {
+    const m = new Map<NK, NV>();
     for (const [k, v] of this.collection) {
       const output = fn(v, k, this);
-      const entries = isPlainObject(output) ? Object.entries(output) : output;
-      for (const [newK, newV] of entries as Iterable<Entry<K, V>>) {
+      const entries = isPlainObject(output)
+        ? (Object.entries(output) as Iterable<Entry<NK, NV>>)
+        : output;
+      for (const [newK, newV] of entries) {
         m.set(newK, newV);
       }
     }
@@ -154,8 +167,8 @@ export class FlowCollection<K, V> {
     return new FlowCollection(m);
   }
 
-  mapEntries<U>(fn: FlowCallback<K, V, [K, U]>) {
-    const m = new Map<K, U>();
+  mapEntries<NK, NV>(fn: FlowCallback<K, V, [NK, NV]>) {
+    const m = new Map<NK, NV>();
     for (const [k, v] of this.collection) {
       const [key, value] = fn(v, k, this);
       m.set(key, value);
@@ -273,11 +286,6 @@ export class FlowCollection<K, V> {
     );
   }
 
-  tap(fn: FlowCallback<K, V, void>) {
-    this.collection.forEach((v, k) => fn(v, k, this));
-    return this;
-  }
-
   toEntries() {
     return [...this.entries()];
   }
@@ -288,6 +296,25 @@ export class FlowCollection<K, V> {
 
   toValues() {
     return [...this.values()];
+  }
+
+  tap(fn: FlowCallback<K, V, void>) {
+    this.collection.forEach((v, k) => fn(v, k, this));
+    return FlowCollection.of(this.collection);
+  }
+
+  peek(fn: (list: FlowCollection<K, V>) => void) {
+    fn(this);
+    return this;
+  }
+
+  thru(fn: (list: FlowCollection<K, V>) => void) {
+    return fn(this);
+  }
+
+  inspect(label = 'Collection Values --> ') {
+    console.log(label, this.collection);
+    return this;
   }
 
   toObject(): Record<PropertyKey, V> {
@@ -309,5 +336,3 @@ export class FlowCollection<K, V> {
     return this.collection[Symbol.iterator]();
   }
 }
-
-export default <K, V>(v: Iterable<Entry<K, V>>) => FlowCollection.of(v);

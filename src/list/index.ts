@@ -295,7 +295,7 @@ export class FlowList<T> {
   }
 
   [Symbol.iterator](): Iterator<T> {
-    return this.array[Symbol.iterator]();
+    return this.array[Symbol.iterator]();;
   }
 
   append(...items: T[]) {
@@ -362,6 +362,20 @@ export class FlowList<T> {
         return el;
       }),
     );
+  }
+
+  peek(fn: (list: FlowList<T>) => void) {
+    fn(this);
+    return this;
+  }
+
+  thru(fn: (list: FlowList<T>) => void) {
+    return fn(this);
+  }
+
+  inspect(label = 'Array Values --> ') {
+    console.log(label, this.array);
+    return this;
   }
 
   tail() {
@@ -465,5 +479,3 @@ export class FlowList<T> {
     return Object.fromEntries<T>(this.array as [PropertyKey, T][]);
   }
 }
-
-export default <T>(v: T[]) => FlowList.of(v);
