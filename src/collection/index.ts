@@ -111,10 +111,8 @@ export class FlowCollection<K, V> {
     const m = new Map<NK, NV>();
     for (const [k, v] of this.collection) {
       const output = fn(v, k, this);
-      const entries = isPlainObject(output)
-        ? (Object.entries(output) as Iterable<Entry<NK, NV>>)
-        : output;
-      for (const [newK, newV] of entries) {
+      const entries = isPlainObject(output) ? Object.entries(output) : output;
+      for (const [newK, newV] of entries as Iterable<Entry<NK, NV>>) {
         m.set(newK, newV);
       }
     }
@@ -243,14 +241,17 @@ export class FlowCollection<K, V> {
     return this.filter((_, k) => !set.has(k));
   }
 
-  merge(...sources: Source<K, V>[]) {
-    const result = sources.reduce<Map<K, V>>((acc, curr) => {
-      const src = isPlainObject(curr) ? Object.entries(curr) : curr;
-      for (const [k, v] of src as Iterable<Entry<K, V>>) {
-        acc.set(k, v);
-      }
-      return acc;
-    }, new Map<K, V>(this.collection));
+  merge<NK extends K = K, NV extends V = V>(...sources: Source<NK, NV>[]) {
+    const result = sources.reduce<Map<NK, NV>>(
+      (acc, curr) => {
+        const src = isPlainObject(curr) ? Object.entries(curr) : curr;
+        for (const [k, v] of src as Iterable<Entry<NK, NV>>) {
+          acc.set(k, v);
+        }
+        return acc;
+      },
+      new Map<NK, NV>(this.collection as Map<NK, NV>),
+    );
     return new FlowCollection(result);
   }
 
