@@ -33,14 +33,13 @@ export class FlowCollection<K, V> {
     return v instanceof FlowCollection;
   }
 
+  static from<K, V>(source: Iterable<readonly [K, V]>): FlowCollection<K, V>;
   static from<K extends PropertyKey, V>(
     source: Record<K, V>,
   ): FlowCollection<K, V>;
-  static from<K, V>(source: Iterable<readonly [K, V]>): FlowCollection<K, V>;
-  static from<K, V>(source: Source<K, V>): FlowCollection<K, V>;
-  static from<K, V>(source: Source<K, V>) {
+  static from(source: any) {
     const src = isPlainObject(source) ? Object.entries(source) : source;
-    return FlowCollection.of<K, V>(src as Iterable<Entry<K, V>>);
+    return FlowCollection.of(src);
   }
 
   get size() {
@@ -61,17 +60,22 @@ export class FlowCollection<K, V> {
   }
 
   with(key: K, value: V) {
-    return new FlowCollection<K, V>(new Map(this.collection).set(key, value));
+    return new FlowCollection(new Map<K, V>(this.collection).set(key, value));
   }
 
   prepend(key: K, value: V) {
-    return FlowCollection.of([[key, value], ...this.collection.entries()]);
+    const m = new Map<K, V>();
+    m.set(key, value);
+    for (const [k, v] of this.collection) {
+      if (k !== key) m.set(k, v);
+    }
+    return new FlowCollection(m);
   }
 
   without(key: K) {
     const m = new Map(this.collection);
     m.delete(key);
-    return new FlowCollection<K, V>(m);
+    return new FlowCollection(m);
   }
 
   has(k: K) {
@@ -241,17 +245,14 @@ export class FlowCollection<K, V> {
     return this.filter((_, k) => !set.has(k));
   }
 
-  merge<NK extends K = K, NV extends V = V>(...sources: Source<NK, NV>[]) {
-    const result = sources.reduce<Map<NK, NV>>(
-      (acc, curr) => {
-        const src = isPlainObject(curr) ? Object.entries(curr) : curr;
-        for (const [k, v] of src as Iterable<Entry<NK, NV>>) {
-          acc.set(k, v);
-        }
-        return acc;
-      },
-      new Map<NK, NV>(this.collection as Map<NK, NV>),
-    );
+  merge(...sources: Source<K, V>[]) {
+    const result = sources.reduce<Map<K, V>>((acc, curr) => {
+      const src = isPlainObject(curr) ? Object.entries(curr) : curr;
+      for (const [k, v] of src as Iterable<Entry<K, V>>) {
+        acc.set(k, v);
+      }
+      return acc;
+    }, new Map<K, V>(this.collection));
     return new FlowCollection(result);
   }
 
