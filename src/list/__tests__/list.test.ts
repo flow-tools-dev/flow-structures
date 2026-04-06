@@ -92,10 +92,10 @@ describe('FlowList - mapping and iteration', () => {
 });
 
 describe('FlowList - filtering, searching, predicates', () => {
-  it('filter, filterNot, tally, some, every', () => {
+  it('filter, reject, tally, some, every', () => {
     const a = FlowList.of([1, 2, 3, 4]);
     expect(a.filter((v: number) => v % 2 === 0).toArray()).toEqual([2, 4]);
-    expect(a.filterNot((v: number) => v % 2 === 0).toArray()).toEqual([1, 3]);
+    expect(a.reject((v: number) => v % 2 === 0).toArray()).toEqual([1, 3]);
     expect(a.tally((v: number) => v > 2)).toBe(2);
     expect(a.some((v: number) => v === 3)).toBe(true);
     expect(a.every((v: number) => v > 0)).toBe(true);

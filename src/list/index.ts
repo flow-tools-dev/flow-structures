@@ -1,4 +1,4 @@
-export type Predicate<T> = (
+export type ListPredicate<T> = (
   value: T,
   index: number,
   list: FlowList<T>,
@@ -25,7 +25,7 @@ export class FlowList<T> {
     return FlowList.of<T>(Array.from(source as ArrayLike<T>));
   }
 
-  static isFlowList(item: any) {
+  static isFlowList(item: unknown) {
     return item instanceof FlowList;
   }
 
@@ -33,15 +33,15 @@ export class FlowList<T> {
     return this.array.length;
   }
 
-  entries(): IterableIterator<[number, T]> {
+  entries() {
     return this.array.entries();
   }
 
-  keys(): IterableIterator<number> {
+  keys() {
     return this.array.keys();
   }
 
-  values(): IterableIterator<T> {
+  values() {
     return this.array.values();
   }
 
@@ -118,15 +118,15 @@ export class FlowList<T> {
     return FlowList.of<T>([...this.array].copyWithin(target, start, end));
   }
 
-  filter(predicate: Predicate<T>): FlowList<T> {
+  filter(predicate: ListPredicate<T>): FlowList<T> {
     return FlowList.of<T>(this.array.filter((v, i) => predicate(v, i, this)));
   }
 
-  filterNot(predicate: Predicate<T>) {
+  reject(predicate: ListPredicate<T>) {
     return FlowList.of<T>(this.array.filter((v, i) => !predicate(v, i, this)));
   }
 
-  tally(predicate: Predicate<T>) {
+  tally(predicate: ListPredicate<T>) {
     return this.array.filter((el, i) => predicate(el, i, this)).length;
   }
 
@@ -150,23 +150,23 @@ export class FlowList<T> {
     return FlowList.of(this.array.toSpliced(index, 0, ...items));
   }
 
-  some(fn: Predicate<T>): boolean {
+  some(fn: ListPredicate<T>): boolean {
     return this.array.some((v, i) => fn(v, i, this));
   }
 
-  every(fn: Predicate<T>): boolean {
+  every(fn: ListPredicate<T>): boolean {
     return this.array.every((v, i) => fn(v, i, this));
   }
 
-  find(fn: Predicate<T>): T | undefined {
+  find(fn: ListPredicate<T>): T | undefined {
     return this.array.find((v, i) => fn(v, i, this));
   }
 
-  findLast(fn: Predicate<T>) {
+  findLast(fn: ListPredicate<T>) {
     return this.array.findLast((v, i) => fn(v, i, this));
   }
 
-  findLastIndex(fn: Predicate<T>) {
+  findLastIndex(fn: ListPredicate<T>) {
     return this.array.findLastIndex((v, i) => fn(v, i, this));
   }
 
@@ -174,7 +174,7 @@ export class FlowList<T> {
     return this.array.lastIndexOf(v);
   }
 
-  findIndex(fn: Predicate<T>): number {
+  findIndex(fn: ListPredicate<T>): number {
     return this.array.findIndex((v, i) => fn(v, i, this));
   }
 
@@ -202,6 +202,10 @@ export class FlowList<T> {
     return FlowList.of<T>(this.array.with(i, v));
   }
 
+  without(...vals: T[]) {
+    return FlowList.of<T>(this.array.filter((v) => !vals.includes(v)));
+  }
+
   toSpliced(start: number, deleteCount?: number, ...items: T[]): FlowList<T> {
     // @ts-expect-error
     return FlowList.of<T>(this.array.toSpliced(start, deleteCount, ...items));
@@ -216,7 +220,7 @@ export class FlowList<T> {
     return FlowList.of<T>(this.array.slice(0, n));
   }
 
-  takeWhile(predicate: Predicate<T>) {
+  takeWhile(predicate: ListPredicate<T>) {
     const take = [];
     for (let i = 0; i <= this.array.length - 1; i++) {
       if (!predicate(this.array[i], i, this)) break;
@@ -230,7 +234,7 @@ export class FlowList<T> {
     return FlowList.of<T>(this.array.slice(-n));
   }
 
-  takeRightWhile(predicate: Predicate<T>) {
+  takeRightWhile(predicate: ListPredicate<T>) {
     const take = [];
     for (let i = this.array.length - 1; i >= 0; i--) {
       if (!predicate(this.array[i], i, this)) break;
@@ -244,7 +248,7 @@ export class FlowList<T> {
     return this.slice(n);
   }
 
-  dropWhile(predicate: Predicate<T>) {
+  dropWhile(predicate: ListPredicate<T>) {
     const keep: T[] = [];
     let drop = true;
     this.array.forEach((el, i) => {
@@ -260,7 +264,7 @@ export class FlowList<T> {
     return FlowList.of<T>(this.array.slice(0, -n));
   }
 
-  dropRightWhile(predicate: Predicate<T>) {
+  dropRightWhile(predicate: ListPredicate<T>) {
     const keep: T[] = [];
     let drop = true;
     const l = this.array.length - 1;
@@ -294,8 +298,12 @@ export class FlowList<T> {
     return FlowList.of<T>(result);
   }
 
+  flattenDeep() {
+    return this.flat(Infinity);
+  }
+
   [Symbol.iterator](): Iterator<T> {
-    return this.array[Symbol.iterator]();;
+    return this.array[Symbol.iterator]();
   }
 
   append(...items: T[]) {
@@ -395,12 +403,18 @@ export class FlowList<T> {
     return FlowList.of<T>(this.array.filter((el) => !exclude.has(el)));
   }
 
-  xor(...arrs: (T[] | FlowList<T>)[]) {
-    const sets = [this.array, ...arrs].map((a) => new Set(a));
+  xor(...lists: (T[] | FlowList<T>)[]) {
+    const sets = [this.array, ...lists].map((a) => new Set(a));
     const result = sets
       .flatMap((s) => [...s])
       .filter((el) => sets.filter((s) => s.has(el)).length === 1);
     return FlowList.of<T>(result);
+  }
+
+  intersection(...lists: (T[] | FlowList<T>)[]) {
+    return FlowList.of<T>(
+      this.array.filter((v) => lists.every((arr) => arr.includes(v))),
+    );
   }
 
   union(...lists: (T[] | FlowList<T>)[]) {
@@ -410,7 +424,7 @@ export class FlowList<T> {
     return FlowList.of(allLists).uniq();
   }
 
-  partition(predicate: Predicate<T>): FlowList<T[]> {
+  partition(predicate: ListPredicate<T>): FlowList<T[]> {
     const pass: T[] = [];
     const fail: T[] = [];
 
@@ -420,22 +434,19 @@ export class FlowList<T> {
     return FlowList.of<T[]>([pass, fail]);
   }
 
-  zip<U>(...lists: (FlowList<U> | U[])[]): FlowList<[T, ...U[]]> {
+  zip<U extends T>(...lists: (FlowList<U> | U[])[]) {
     // normalize everything to arrays
-    const allArrays: unknown[][] = [
-      this.array,
-      ...lists.map((l) => (l instanceof FlowList ? l.toArray() : l)),
-    ];
+    const allLists: (U[] | FlowList<U>)[] = [this.array as U[], ...lists];
 
-    const maxLen = Math.max(...allArrays.map((a) => a.length));
-    const zipped: [T, ...U[]][] = [];
+    const maxLen = Math.max(...allLists.map((a) => a.length));
+    const zipped: U[][] = [];
 
     for (let i = 0; i < maxLen; i++) {
       // map each array to its i-th element
-      zipped.push(allArrays.map((a) => a[i]) as [T, ...U[]]);
+      zipped.push(allLists.map((a) => a.at(i) as U));
     }
 
-    return FlowList.of(zipped);
+    return FlowList.of<U[]>(zipped);
   }
 
   groupBy(fn: ListCallback<T, PropertyKey>) {
