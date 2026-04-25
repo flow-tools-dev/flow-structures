@@ -1,325 +1,1392 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { FlowList } from '..';
 
-describe('FlowList - basics', () => {
-  it('constructs via of and from (array, iterable, FlowList)', () => {
-    const a = FlowList.of([1, 2, 3]);
-    expect(a.length).toBe(3);
-    expect(a.toArray()).toEqual([1, 2, 3]);
-
-    const fromArray = FlowList.from([4, 5]);
-    expect(fromArray.toArray()).toEqual([4, 5]);
-
-    const fromIterable = FlowList.from(
-      (function* () {
-        yield 6;
-        yield 7;
-      })(),
-    );
-    expect(fromIterable.toArray()).toEqual([6, 7]);
-
-    const fromFlow = FlowList.from(a);
-    expect(fromFlow.toArray()).toEqual([1, 2, 3]);
+describe('FlowList.of', () => {
+  it('creates a FlowList from an array', () => {
+    expect(FlowList.of([1, 2, 3])).toBeInstanceOf(FlowList);
   });
 
-  it('supports iterator, entries, keys, values', () => {
-    const a = FlowList.of(['x', 'y']);
-    expect(Array.from(a)).toEqual(['x', 'y']);
-    expect(Array.from(a.entries())).toEqual([
-      [0, 'x'],
-      [1, 'y'],
-    ]);
-    expect(Array.from(a.keys())).toEqual([0, 1]);
-    expect(Array.from(a.values())).toEqual(['x', 'y']);
+  it('wraps an empty array', () => {
+    expect(FlowList.of([]).length).toBe(0);
   });
 });
 
-describe('FlowList - mapping and iteration', () => {
-  it('map', () => {
-    const a = FlowList.of([1, 2, 3]);
-    expect(a.map((v, i, list) => v + 1).toArray()).toEqual([2, 3, 4]);
-  });
-
-  it('forEach calls callback with (value, index, list) in order and returns undefined', () => {
-    const a = FlowList.of([10, 20, 30]);
-    const calls: Array<[number, number, boolean]> = [];
-    const ret = a.forEach((v, i, list) =>
-      calls.push([v as number, i as number, list === a]),
-    );
-    expect(calls).toEqual([
-      [10, 0, true],
-      [20, 1, true],
-      [30, 2, true],
-    ]);
-    expect(ret).toBeUndefined();
-    expect(a.toArray()).toEqual([10, 20, 30]);
-  });
-
-  it('forEachRight iterates right-to-left with (value, index, list) and returns undefined', () => {
-    const a = FlowList.of([10, 20, 30]);
-    const calls: Array<[number, number, boolean]> = [];
-    const ret = a.forEachRight((v, i, list) =>
-      calls.push([v as number, i as number, list === a]),
-    );
-    expect(calls).toEqual([
-      [30, 2, true],
-      [20, 1, true],
-      [10, 0, true],
-    ]);
-    expect(ret).toBeUndefined();
-    expect(a.toArray()).toEqual([10, 20, 30]);
-  });
-
-  it('flatMap handles arrays, FlowList and single values', () => {
-    const a = FlowList.of([1, 2, 3]);
-    const fm = a.flatMap((v: number) => [v, v + 10]);
-    expect(fm.toArray()).toEqual([1, 11, 2, 12, 3, 13]);
-
-    const fm2 = a.flatMap((v: number) => FlowList.of([v, v * 2]));
-    expect(fm2.toArray()).toEqual([1, 2, 2, 4, 3, 6]);
-
-    const fm3 = a.flatMap((v: number) => v + 100);
-    expect(fm3.toArray()).toEqual([101, 102, 103]);
-  });
-
-  it('tap allows side-effects but returns original values', () => {
-    const a = FlowList.of([1, 2]);
-    const side: number[] = [];
-    const tapped = a.tap((v: number) => side.push(v * 2));
-    expect(side).toEqual([2, 4]);
-    expect(tapped.toArray()).toEqual([1, 2]);
-  });
-});
-
-describe('FlowList - filtering, searching, predicates', () => {
-  it('filter, reject, tally, some, every', () => {
-    const a = FlowList.of([1, 2, 3, 4]);
-    expect(a.filter((v: number) => v % 2 === 0).toArray()).toEqual([2, 4]);
-    expect(a.reject((v: number) => v % 2 === 0).toArray()).toEqual([1, 3]);
-    expect(a.tally((v: number) => v > 2)).toBe(2);
-    expect(a.some((v: number) => v === 3)).toBe(true);
-    expect(a.every((v: number) => v > 0)).toBe(true);
-  });
-
-  it('find, findIndex, findLast, findLastIndex, indexOf, lastIndexOf, includes, at', () => {
-    const a = FlowList.of([1, 2, 3, 2]);
-    expect(a.find((v: number) => v === 2)).toBe(2);
-    expect(a.findIndex((v: number) => v === 2)).toBe(1);
-    expect(a.findLast((v: number) => v === 2)).toBe(2);
-    expect(a.findLastIndex((v: number) => v === 2)).toBe(3);
-
-    expect(a.indexOf(2, 0)).toBe(1);
-    expect(a.lastIndexOf(2)).toBe(3);
-    expect(a.includes(3)).toBe(true);
-    expect(a.at(0)).toBe(1);
-    expect(a.at(-1)).toBe(2);
-  });
-});
-
-describe('FlowList - reductions', () => {
-  it('reduce and reduceRight', () => {
-    const a = FlowList.of([1, 2, 3]);
-    const sum = a.reduce((acc: number, curr: number) => acc + curr, 0);
-    expect(sum).toBe(6);
-    const concatRight = a.reduceRight(
-      (acc: string, curr: number) => acc + curr,
-      '',
-    );
-    expect(concatRight).toBe('321');
-  });
-});
-
-describe('FlowList - slicing, take/drop, with, splicing', () => {
-  it('slice, take, takeRight, drop, dropRight, with, toSpliced, insert', () => {
-    const a = FlowList.of([1, 2, 3, 4, 5]);
-    expect(a.slice(1, 4).toArray()).toEqual([2, 3, 4]);
-    expect(a.take(3).toArray()).toEqual([1, 2, 3]);
-    expect(a.takeRight(2).toArray()).toEqual([4, 5]);
-    expect(a.drop(2).toArray()).toEqual([3, 4, 5]);
-    expect(a.dropRight(2).toArray()).toEqual([1, 2, 3]);
-    expect(a.with(1, 99).toArray()).toEqual([1, 99, 3, 4, 5]);
-    expect(a.toArray()).toEqual([1, 2, 3, 4, 5]);
-
-    // toSpliced may be available; test basic insertion/removal behavior if present
-    const spliced = a.toSpliced(2, 1, 7, 8);
-    expect(spliced.toArray()).toEqual([1, 2, 7, 8, 4, 5]);
-    // original unchanged
-    expect(a.toArray()).toEqual([1, 2, 3, 4, 5]);
-    expect(a.insert(1, 55, 43, 56).toArray()).toEqual([
-      1, 55, 43, 56, 2, 3, 4, 5,
+describe('FlowList.from', () => {
+  it('creates a FlowList from an array-like', () => {
+    expect(FlowList.from({ 0: 'a', 1: 'b', length: 2 }).toArray()).toEqual([
+      'a',
+      'b',
     ]);
   });
 
-  it('toIndex handles positive, negative and out-of-range', () => {
-    const a = FlowList.of([10, 20, 30]);
-    expect(a.toIndex(1).toArray()).toEqual([20]);
-    expect(a.toIndex(-1).toArray()).toEqual([30]);
-    expect(a.toIndex(5).toArray()).toEqual([]);
+  it('creates a FlowList from an iterable', () => {
+    expect(FlowList.from(new Set([1, 2, 3])).toArray()).toEqual([1, 2, 3]);
   });
 
-  it('copy within copies elements within the same list', () => {
-    const a = FlowList.of([1, 2, 3, 4, 5]);
-    expect(a.copyWithin(0, 3, 5).toArray()).toEqual([4, 5, 3, 4, 5]);
-
-    const b = FlowList.of(['a', 'b', 'c', 'd']);
-    expect(b.copyWithin(1, 0, 2).toArray()).toEqual(['a', 'a', 'b', 'd']);
-  });
-
-  it('copy within, but does not modify the original', () => {
-    const a = FlowList.of([1, 2, 3, 4, 5]);
-    expect(a.toCopiedWithin(0, 3, 5).toArray()).toEqual([4, 5, 3, 4, 5]);
-
-    const b = FlowList.of(['a', 'b', 'c', 'd']);
-    expect(b.toCopiedWithin(1, 0, 2).toArray()).toEqual(['a', 'a', 'b', 'd']);
-
-    // original unchanged
-    expect(a.toArray()).toEqual([1, 2, 3, 4, 5]);
+  it('creates a FlowList from another FlowList', () => {
+    const original = FlowList.of([1, 2, 3]);
+    expect(FlowList.from(original).toArray()).toEqual([1, 2, 3]);
   });
 });
 
-describe('FlowList - while-based operations', () => {
-  it('takeWhile and dropWhile', () => {
-    const a = FlowList.of([1, 2, 3, 1, 0]);
-    expect(a.takeWhile((v: number) => v < 3).toArray()).toEqual([1, 2]);
-    expect(a.dropWhile((v: number) => v < 3).toArray()).toEqual([3, 1, 0]);
+describe('FlowList.isFlowList', () => {
+  it('returns true for a FlowList instance', () => {
+    expect(FlowList.isFlowList(FlowList.of([1]))).toBe(true);
   });
 
-  it('takeRightWhile and dropRightWhile', () => {
-    const a = FlowList.of([1, 2, 3, 3, 2, 1]);
-    expect(a.takeRightWhile((v: number) => v <= 1).toArray()).toEqual([1]);
-    expect(a.dropRightWhile((v: number) => v <= 1).toArray()).toEqual([
-      1, 2, 3, 3, 2,
+  it('returns false for a plain array', () => {
+    expect(FlowList.isFlowList([1, 2, 3])).toBe(false);
+  });
+
+  it('returns false for a non-array value', () => {
+    expect(FlowList.isFlowList('hello')).toBe(false);
+  });
+
+  it('returns false for null', () => {
+    expect(FlowList.isFlowList(null)).toBe(false);
+  });
+});
+
+describe('length', () => {
+  it('returns the number of elements', () => {
+    expect(FlowList.of([1, 2, 3]).length).toBe(3);
+  });
+
+  it('returns 0 for an empty list', () => {
+    expect(FlowList.of([]).length).toBe(0);
+  });
+});
+
+describe('entries', () => {
+  it('returns an iterator of [index, value] pairs', () => {
+    expect([...FlowList.of(['a', 'b']).entries()]).toEqual([
+      [0, 'a'],
+      [1, 'b'],
     ]);
   });
 });
 
-describe('FlowList - ordering and sorting', () => {
-  it('toReversed and toSorted and sortBy', () => {
-    const a = FlowList.of([3, 1, 2]);
-    expect(a.toReversed().toArray()).toEqual([2, 1, 3]);
+describe('keys', () => {
+  it('returns an iterator of indices', () => {
+    expect([...FlowList.of(['a', 'b']).keys()]).toEqual([0, 1]);
+  });
+});
 
-    expect(a.toSorted().toArray()).toEqual([1, 2, 3]);
-    expect(a.toSorted((x: number, y: number) => y - x).toArray()).toEqual([
-      3, 2, 1,
+describe('values', () => {
+  it('returns an iterator of values', () => {
+    expect([...FlowList.of(['a', 'b']).values()]).toEqual(['a', 'b']);
+  });
+});
+
+describe('pop', () => {
+  it('removes and returns the last element', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.pop()).toBe(3);
+    expect(list.toArray()).toEqual([1, 2]);
+  });
+
+  it('returns undefined for an empty list', () => {
+    expect(FlowList.of([]).pop()).toBeUndefined();
+  });
+});
+
+describe('push', () => {
+  it('appends items and returns the new length', () => {
+    const list = FlowList.of([1, 2]);
+    expect(list.push(3, 4)).toBe(4);
+    expect(list.toArray()).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('shift', () => {
+  it('removes and returns the first element', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.shift()).toBe(1);
+    expect(list.toArray()).toEqual([2, 3]);
+  });
+
+  it('returns undefined for an empty list', () => {
+    expect(FlowList.of([]).shift()).toBeUndefined();
+  });
+});
+
+describe('unshift', () => {
+  it('inserts items at the beginning and returns the new length', () => {
+    const list = FlowList.of([3, 4]);
+    expect(list.unshift(1, 2)).toBe(4);
+    expect(list.toArray()).toEqual([1, 2, 3, 4]);
+  });
+});
+
+describe('join', () => {
+  it('joins elements with the default separator', () => {
+    expect(FlowList.of([1, 2, 3]).join()).toBe('1,2,3');
+  });
+
+  it('joins elements with a custom separator', () => {
+    expect(FlowList.of([1, 2, 3]).join(' - ')).toBe('1 - 2 - 3');
+  });
+
+  it('returns an empty string for an empty list', () => {
+    expect(FlowList.of([]).join()).toBe('');
+  });
+});
+
+describe('map', () => {
+  it('transforms each element', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .map((x) => x * 2)
+        .toArray(),
+    ).toEqual([2, 4, 6]);
+  });
+
+  it('passes the index to the callback', () => {
+    expect(
+      FlowList.of(['a', 'b'])
+        .map((_, i) => i)
+        .toArray(),
+    ).toEqual([0, 1]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.map((_, _i, l) => {
+      expect(l).toBe(list);
+      return 0;
+    });
+  });
+
+  it('returns a new FlowList', () => {
+    const list = FlowList.of([1, 2]);
+    expect(list.map((x) => x)).toBeInstanceOf(FlowList);
+  });
+});
+
+describe('forEach', () => {
+  it('iterates over each element', () => {
+    const results: number[] = [];
+    FlowList.of([1, 2, 3]).forEach((x) => results.push(x));
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.forEach((_, _i, l) => expect(l).toBe(list));
+  });
+});
+
+describe('forEachRight', () => {
+  it('iterates from last to first', () => {
+    const results: number[] = [];
+    FlowList.of([1, 2, 3]).forEachRight((x) => results.push(x));
+    expect(results).toEqual([3, 2, 1]);
+  });
+
+  it('passes the correct index', () => {
+    const indices: number[] = [];
+    FlowList.of(['a', 'b', 'c']).forEachRight((_, i) => indices.push(i));
+    expect(indices).toEqual([2, 1, 0]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.forEachRight((_, _i, l) => expect(l).toBe(list));
+  });
+});
+
+describe('fill', () => {
+  it('fills the entire list with a value', () => {
+    const list = FlowList.of([1, 2, 3]);
+    list.fill(0);
+    expect(list.toArray()).toEqual([0, 0, 0]);
+  });
+
+  it('fills a range with a value', () => {
+    const list = FlowList.of([1, 2, 3, 4]);
+    list.fill(0, 1, 3);
+    expect(list.toArray()).toEqual([1, 0, 0, 4]);
+  });
+
+  it('returns the mutated list', () => {
+    const list = FlowList.of([1, 2]);
+    expect(list.fill(0)).toBe(list);
+  });
+});
+
+describe('toFilled', () => {
+  it('fills the entire list with a value without mutating', () => {
+    const list = FlowList.of([1, 2, 3]);
+    const filled = list.toFilled(0);
+    expect(filled.toArray()).toEqual([0, 0, 0]);
+    expect(list.toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('fills a range', () => {
+    expect(FlowList.of([1, 2, 3, 4]).toFilled(0, 1, 3).toArray()).toEqual([
+      1, 0, 0, 4,
     ]);
+  });
 
-    const objs = FlowList.of([{ k: 2 }, { k: 1 }]);
-    expect(objs.sortBy((o: any) => o.k).toArray()).toEqual([
-      { k: 1 },
-      { k: 2 },
+  it('returns a new FlowList', () => {
+    const list = FlowList.of([1, 2]);
+    expect(list.toFilled(0)).not.toBe(list);
+  });
+});
+
+describe('flatMap', () => {
+  it('maps and flattens array return values', () => {
+    expect(
+      FlowList.of([1, 2])
+        .flatMap((x) => [x, x * 2])
+        .toArray(),
+    ).toEqual([1, 2, 2, 4]);
+  });
+
+  it('maps and flattens FlowList return values', () => {
+    expect(
+      FlowList.of([1, 2])
+        .flatMap((x) => FlowList.of([x, x]))
+        .toArray(),
+    ).toEqual([1, 1, 2, 2]);
+  });
+
+  it('handles scalar return values', () => {
+    expect(
+      FlowList.of([1, 2])
+        .flatMap((x) => x * 2)
+        .toArray(),
+    ).toEqual([2, 4]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.flatMap((_, _i, l) => {
+      expect(l).toBe(list);
+      return [];
+    });
+  });
+});
+
+describe('copyWithin', () => {
+  it('copies elements to another position', () => {
+    const list = FlowList.of([1, 2, 3, 4, 5]);
+    list.copyWithin(0, 3);
+    expect(list.toArray()).toEqual([4, 5, 3, 4, 5]);
+  });
+
+  it('respects the end parameter', () => {
+    const list = FlowList.of([1, 2, 3, 4, 5]);
+    list.copyWithin(1, 3, 4);
+    expect(list.toArray()).toEqual([1, 4, 3, 4, 5]);
+  });
+
+  it('returns the mutated list', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.copyWithin(0, 1)).toBe(list);
+  });
+});
+
+describe('toCopiedWithin', () => {
+  it('copies elements to another position without mutating', () => {
+    const list = FlowList.of([1, 2, 3, 4, 5]);
+    const result = list.toCopiedWithin(0, 3);
+    expect(result.toArray()).toEqual([4, 5, 3, 4, 5]);
+    expect(list.toArray()).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('returns a new FlowList', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.toCopiedWithin(0, 1)).not.toBe(list);
+  });
+});
+
+describe('filter', () => {
+  it('keeps elements that pass the predicate', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .filter((x) => x % 2 === 0)
+        .toArray(),
+    ).toEqual([2, 4]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.filter((_, _i, l) => {
+      expect(l).toBe(list);
+      return true;
+    });
+  });
+
+  it('returns a new FlowList', () => {
+    const list = FlowList.of([1, 2]);
+    expect(list.filter(() => true)).toBeInstanceOf(FlowList);
+  });
+});
+
+describe('reject', () => {
+  it('removes elements that pass the predicate', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .reject((x) => x % 2 === 0)
+        .toArray(),
+    ).toEqual([1, 3]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.reject((_, _i, l) => {
+      expect(l).toBe(list);
+      return false;
+    });
+  });
+});
+
+describe('tally', () => {
+  it('counts elements that pass the predicate', () => {
+    expect(FlowList.of([1, 2, 3, 4]).tally((x) => x % 2 === 0)).toBe(2);
+  });
+
+  it('returns 0 when no elements pass', () => {
+    expect(FlowList.of([1, 3, 5]).tally((x) => x % 2 === 0)).toBe(0);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.tally((_, _i, l) => {
+      expect(l).toBe(list);
+      return true;
+    });
+  });
+});
+
+describe('reduce', () => {
+  it('reduces from left to right', () => {
+    expect(FlowList.of([1, 2, 3]).reduce((acc, x) => acc + x, 0)).toBe(6);
+  });
+
+  it('passes the FlowList instance as the fourth argument', () => {
+    const list = FlowList.of([1]);
+    list.reduce((acc, _, _i, l) => {
+      expect(l).toBe(list);
+      return acc;
+    }, 0);
+  });
+});
+
+describe('reduceRight', () => {
+  it('reduces from right to left', () => {
+    expect(
+      FlowList.of(['a', 'b', 'c']).reduceRight((acc, x) => acc + x, ''),
+    ).toBe('cba');
+  });
+
+  it('passes the FlowList instance as the fourth argument', () => {
+    const list = FlowList.of([1]);
+    list.reduceRight((acc, _, _i, l) => {
+      expect(l).toBe(list);
+      return acc;
+    }, 0);
+  });
+});
+
+describe('insert', () => {
+  it('inserts items at the given index', () => {
+    expect(FlowList.of([1, 2, 4]).insert(2, 3).toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('inserts multiple items', () => {
+    expect(FlowList.of([1, 4]).insert(1, 2, 3).toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('inserts at the beginning', () => {
+    expect(FlowList.of([2, 3]).insert(0, 1).toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2]);
+    list.insert(1, 99);
+    expect(list.toArray()).toEqual([1, 2]);
+  });
+});
+
+describe('some', () => {
+  it('returns true if any element passes', () => {
+    expect(FlowList.of([1, 2, 3]).some((x) => x === 2)).toBe(true);
+  });
+
+  it('returns false if no element passes', () => {
+    expect(FlowList.of([1, 2, 3]).some((x) => x === 99)).toBe(false);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.some((_, _i, l) => {
+      expect(l).toBe(list);
+      return true;
+    });
+  });
+});
+
+describe('every', () => {
+  it('returns true if all elements pass', () => {
+    expect(FlowList.of([2, 4, 6]).every((x) => x % 2 === 0)).toBe(true);
+  });
+
+  it('returns false if any element fails', () => {
+    expect(FlowList.of([2, 3, 6]).every((x) => x % 2 === 0)).toBe(false);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.every((_, _i, l) => {
+      expect(l).toBe(list);
+      return true;
+    });
+  });
+});
+
+describe('find', () => {
+  it('returns the first matching element', () => {
+    expect(FlowList.of([1, 2, 3]).find((x) => x > 1)).toBe(2);
+  });
+
+  it('returns undefined if no element matches', () => {
+    expect(FlowList.of([1, 2, 3]).find((x) => x > 99)).toBeUndefined();
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.find((_, _i, l) => {
+      expect(l).toBe(list);
+      return true;
+    });
+  });
+});
+
+describe('findLast', () => {
+  it('returns the last matching element', () => {
+    expect(FlowList.of([1, 2, 3]).findLast((x) => x < 3)).toBe(2);
+  });
+
+  it('returns undefined if no element matches', () => {
+    expect(FlowList.of([1, 2, 3]).findLast((x) => x > 99)).toBeUndefined();
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.findLast((_, _i, l) => {
+      expect(l).toBe(list);
+      return true;
+    });
+  });
+});
+
+describe('findLastIndex', () => {
+  it('returns the index of the last matching element', () => {
+    expect(FlowList.of([1, 2, 3, 2]).findLastIndex((x) => x === 2)).toBe(3);
+  });
+
+  it('returns -1 if no element matches', () => {
+    expect(FlowList.of([1, 2, 3]).findLastIndex((x) => x === 99)).toBe(-1);
+  });
+});
+
+describe('lastIndexOf', () => {
+  it('returns the last index of a value', () => {
+    expect(FlowList.of([1, 2, 1, 3]).lastIndexOf(1)).toBe(2);
+  });
+
+  it('returns -1 if not found', () => {
+    expect(FlowList.of([1, 2, 3]).lastIndexOf(99)).toBe(-1);
+  });
+});
+
+describe('findIndex', () => {
+  it('returns the index of the first matching element', () => {
+    expect(FlowList.of([1, 2, 3]).findIndex((x) => x > 1)).toBe(1);
+  });
+
+  it('returns -1 if no element matches', () => {
+    expect(FlowList.of([1, 2, 3]).findIndex((x) => x > 99)).toBe(-1);
+  });
+});
+
+describe('indexOf', () => {
+  it('returns the first index of a value', () => {
+    expect(FlowList.of([1, 2, 3, 2]).indexOf(2, 0)).toBe(1);
+  });
+
+  it('respects the start parameter', () => {
+    expect(FlowList.of([1, 2, 3, 2]).indexOf(2, 2)).toBe(3);
+  });
+
+  it('returns -1 if not found', () => {
+    expect(FlowList.of([1, 2, 3]).indexOf(99, 0)).toBe(-1);
+  });
+});
+
+describe('includes', () => {
+  it('returns true if the value is present', () => {
+    expect(FlowList.of([1, 2, 3]).includes(2)).toBe(true);
+  });
+
+  it('returns false if the value is not present', () => {
+    expect(FlowList.of([1, 2, 3]).includes(99)).toBe(false);
+  });
+});
+
+describe('at', () => {
+  it('returns the element at a positive index', () => {
+    expect(FlowList.of([1, 2, 3]).at(1)).toBe(2);
+  });
+
+  it('returns the element at a negative index', () => {
+    expect(FlowList.of([1, 2, 3]).at(-1)).toBe(3);
+  });
+
+  it('returns undefined for an out-of-bounds index', () => {
+    expect(FlowList.of([1, 2, 3]).at(99)).toBeUndefined();
+  });
+});
+
+describe('toReversed', () => {
+  it('returns a new list in reverse order', () => {
+    expect(FlowList.of([1, 2, 3]).toReversed().toArray()).toEqual([3, 2, 1]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2, 3]);
+    list.toReversed();
+    expect(list.toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('toSorted', () => {
+  it('sorts with the default comparator', () => {
+    expect(FlowList.of([3, 1, 2]).toSorted().toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('sorts with a custom comparator', () => {
+    expect(
+      FlowList.of([3, 1, 2])
+        .toSorted((a, b) => b - a)
+        .toArray(),
+    ).toEqual([3, 2, 1]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([3, 1, 2]);
+    list.toSorted();
+    expect(list.toArray()).toEqual([3, 1, 2]);
+  });
+});
+
+describe('with', () => {
+  it('replaces the element at the given index', () => {
+    expect(FlowList.of([1, 2, 3]).with(1, 99).toArray()).toEqual([1, 99, 3]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2, 3]);
+    list.with(1, 99);
+    expect(list.toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('without', () => {
+  it('removes all occurrences of the given values', () => {
+    expect(FlowList.of([1, 2, 3, 2, 1]).without(1, 2).toArray()).toEqual([3]);
+  });
+
+  it('returns the original elements when no match', () => {
+    expect(FlowList.of([1, 2, 3]).without(99).toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2, 3]);
+    list.without(1);
+    expect(list.toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('toSpliced', () => {
+  it('removes elements', () => {
+    expect(FlowList.of([1, 2, 3, 4]).toSpliced(1, 2).toArray()).toEqual([1, 4]);
+  });
+
+  it('inserts elements', () => {
+    expect(FlowList.of([1, 4]).toSpliced(1, 0, 2, 3).toArray()).toEqual([
+      1, 2, 3, 4,
+    ]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2, 3]);
+    list.toSpliced(0, 1);
+    expect(list.toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('slice', () => {
+  it('returns a slice of the list', () => {
+    expect(FlowList.of([1, 2, 3, 4]).slice(1, 3).toArray()).toEqual([2, 3]);
+  });
+
+  it('defaults start to 0', () => {
+    expect(FlowList.of([1, 2, 3]).slice(undefined, 2).toArray()).toEqual([
+      1, 2,
+    ]);
+  });
+
+  it('defaults end to the list length', () => {
+    expect(FlowList.of([1, 2, 3]).slice(1).toArray()).toEqual([2, 3]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2, 3]);
+    list.slice(0, 1);
+    expect(list.toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('take', () => {
+  it('returns the first n elements', () => {
+    expect(FlowList.of([1, 2, 3, 4]).take(2).toArray()).toEqual([1, 2]);
+  });
+
+  it('returns an empty list for n <= 0', () => {
+    expect(FlowList.of([1, 2, 3]).take(0).toArray()).toEqual([]);
+    expect(FlowList.of([1, 2, 3]).take(-1).toArray()).toEqual([]);
+  });
+
+  it('returns all elements if n exceeds list length', () => {
+    expect(FlowList.of([1, 2]).take(99).toArray()).toEqual([1, 2]);
+  });
+});
+
+describe('takeWhile', () => {
+  it('takes leading elements while predicate holds', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .takeWhile((x) => x < 3)
+        .toArray(),
+    ).toEqual([1, 2]);
+  });
+
+  it('returns an empty list if the first element fails', () => {
+    expect(
+      FlowList.of([3, 1, 2])
+        .takeWhile((x) => x < 3)
+        .toArray(),
+    ).toEqual([]);
+  });
+
+  it('returns all elements if all pass', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .takeWhile((x) => x < 99)
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+});
+
+describe('takeRight', () => {
+  it('returns the last n elements', () => {
+    expect(FlowList.of([1, 2, 3, 4]).takeRight(2).toArray()).toEqual([3, 4]);
+  });
+
+  it('returns an empty list for n <= 0', () => {
+    expect(FlowList.of([1, 2, 3]).takeRight(0).toArray()).toEqual([]);
+    expect(FlowList.of([1, 2, 3]).takeRight(-1).toArray()).toEqual([]);
+  });
+
+  it('returns all elements if n exceeds list length', () => {
+    expect(FlowList.of([1, 2]).takeRight(99).toArray()).toEqual([1, 2]);
+  });
+});
+
+describe('takeRightWhile', () => {
+  it('takes trailing elements while predicate holds', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .takeRightWhile((x) => x > 2)
+        .toArray(),
+    ).toEqual([3, 4]);
+  });
+
+  it('returns elements in original order', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .takeRightWhile((x) => x > 1)
+        .toArray(),
+    ).toEqual([2, 3, 4]);
+  });
+
+  it('returns an empty list if the last element fails', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .takeRightWhile((x) => x > 99)
+        .toArray(),
+    ).toEqual([]);
+  });
+});
+
+describe('drop', () => {
+  it('removes the first n elements', () => {
+    expect(FlowList.of([1, 2, 3, 4]).drop(2).toArray()).toEqual([3, 4]);
+  });
+
+  it('returns the original list for n <= 0', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.drop(0)).toBe(list);
+  });
+
+  it('returns an empty list if n exceeds list length', () => {
+    expect(FlowList.of([1, 2]).drop(99).toArray()).toEqual([]);
+  });
+});
+
+describe('dropWhile', () => {
+  it('drops leading elements while predicate holds', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .dropWhile((x) => x < 3)
+        .toArray(),
+    ).toEqual([3, 4]);
+  });
+
+  it('returns all elements if the first element fails', () => {
+    expect(
+      FlowList.of([3, 1, 2])
+        .dropWhile((x) => x < 3)
+        .toArray(),
+    ).toEqual([3, 1, 2]);
+  });
+
+  it('returns an empty list if all elements pass', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .dropWhile((x) => x < 99)
+        .toArray(),
+    ).toEqual([]);
+  });
+});
+
+describe('dropRight', () => {
+  it('removes the last n elements', () => {
+    expect(FlowList.of([1, 2, 3, 4]).dropRight(2).toArray()).toEqual([1, 2]);
+  });
+
+  it('returns the original list for n <= 0', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.dropRight(0)).toBe(list);
+  });
+
+  it('returns an empty list if n exceeds list length', () => {
+    expect(FlowList.of([1, 2]).dropRight(99).toArray()).toEqual([]);
+  });
+});
+
+describe('dropRightWhile', () => {
+  it('drops trailing elements while predicate holds', () => {
+    expect(
+      FlowList.of([1, 2, 3, 4])
+        .dropRightWhile((x) => x > 2)
+        .toArray(),
+    ).toEqual([1, 2]);
+  });
+
+  it('returns all elements if the last element fails', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .dropRightWhile((x) => x > 99)
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('returns an empty list if all elements pass', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .dropRightWhile((x) => x > 0)
+        .toArray(),
+    ).toEqual([]);
+  });
+});
+
+describe('concat', () => {
+  it('concatenates plain arrays', () => {
+    expect(FlowList.of([1, 2]).concat([3, 4]).toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('concatenates FlowList instances', () => {
+    expect(
+      FlowList.of([1, 2])
+        .concat(FlowList.of([3, 4]))
+        .toArray(),
+    ).toEqual([1, 2, 3, 4]);
+  });
+
+  it('concatenates multiple mixed inputs', () => {
+    expect(
+      FlowList.of([1])
+        .concat([2], FlowList.of([3]))
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2]);
+    list.concat([3]);
+    expect(list.toArray()).toEqual([1, 2]);
+  });
+});
+
+describe('flat', () => {
+  it('flattens one level by default', () => {
+    expect(
+      FlowList.of([
+        [1, 2],
+        [3, 4],
+      ])
+        .flat()
+        .toArray(),
+    ).toEqual([1, 2, 3, 4]);
+  });
+
+  it('flattens to the specified depth', () => {
+    expect(
+      FlowList.of([[[1]], [[2]]])
+        .flat(2)
+        .toArray(),
+    ).toEqual([1, 2]);
+  });
+
+  it('flattens nested FlowList instances', () => {
+    expect(
+      FlowList.of([FlowList.of([1, 2]), FlowList.of([3, 4])])
+        .flat()
+        .toArray(),
+    ).toEqual([1, 2, 3, 4]);
+  });
+
+  it('does not flatten beyond the specified depth', () => {
+    expect(
+      FlowList.of([[[1, 2]]])
+        .flat(1)
+        .toArray(),
+    ).toEqual([[1, 2]]);
+  });
+});
+
+describe('flattenDeep', () => {
+  it('flattens all levels of nesting', () => {
+    expect(
+      FlowList.of([[[1]], [[2, [3]]]])
+        .flattenDeep()
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('flattens nested FlowList instances at any depth', () => {
+    expect(
+      FlowList.of([FlowList.of([FlowList.of([1])])])
+        .flattenDeep()
+        .toArray(),
+    ).toEqual([1]);
+  });
+});
+
+describe('Symbol.iterator', () => {
+  it('supports for...of iteration', () => {
+    const results: number[] = [];
+    for (const x of FlowList.of([1, 2, 3])) results.push(x);
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  it('supports spread syntax', () => {
+    expect([...FlowList.of([1, 2, 3])]).toEqual([1, 2, 3]);
+  });
+});
+
+describe('append', () => {
+  it('adds items to the end', () => {
+    expect(FlowList.of([1, 2]).append(3, 4).toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([1, 2]);
+    list.append(3);
+    expect(list.toArray()).toEqual([1, 2]);
+  });
+});
+
+describe('prepend', () => {
+  it('adds items to the beginning', () => {
+    expect(FlowList.of([3, 4]).prepend(1, 2).toArray()).toEqual([1, 2, 3, 4]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([3, 4]);
+    list.prepend(1);
+    expect(list.toArray()).toEqual([3, 4]);
+  });
+});
+
+describe('chunk', () => {
+  it('splits the list into chunks of size n', () => {
+    expect(FlowList.of([1, 2, 3, 4]).chunk(2).toArray()).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
+  });
+
+  it('includes a smaller final chunk when list does not divide evenly', () => {
+    expect(FlowList.of([1, 2, 3, 4, 5]).chunk(2).toArray()).toEqual([
+      [1, 2],
+      [3, 4],
+      [5],
+    ]);
+  });
+
+  it('returns a single chunk if n exceeds list length', () => {
+    expect(FlowList.of([1, 2]).chunk(10).toArray()).toEqual([[1, 2]]);
+  });
+
+  it('returns empty array if negative n passed in.', () => {
+    expect(FlowList.of([1, 2]).chunk(-1).toArray()).toEqual([]);
+  });
+});
+
+describe('compact', () => {
+  it('removes all falsy values', () => {
+    expect(
+      FlowList.of([0, 1, false, 2, '', 3, null, undefined]).compact().toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('returns an empty list when all values are falsy', () => {
+    expect(FlowList.of([0, false, '']).compact().toArray()).toEqual([]);
+  });
+});
+
+describe('uniq', () => {
+  it('removes duplicate values', () => {
+    expect(FlowList.of([1, 2, 2, 3, 1]).uniq().toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('preserves first occurrence order', () => {
+    expect(FlowList.of([3, 1, 2, 1, 3]).uniq().toArray()).toEqual([3, 1, 2]);
+  });
+});
+
+describe('uniqBy', () => {
+  it('removes duplicates by property', () => {
+    const list = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+      { id: 1, v: 'c' },
+    ]);
+    expect(list.uniqBy('id').toArray()).toEqual([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+    ]);
+  });
+
+  it('preserves first occurrence order', () => {
+    const list = FlowList.of([{ k: 'b' }, { k: 'a' }, { k: 'b' }]);
+    expect(
+      list
+        .uniqBy('k')
+        .map((x) => x.k)
+        .toArray(),
+    ).toEqual(['b', 'a']);
+  });
+});
+
+describe('head', () => {
+  it('returns the first element', () => {
+    expect(FlowList.of([1, 2, 3]).head()).toBe(1);
+  });
+
+  it('returns undefined for an empty list', () => {
+    expect(FlowList.of([]).head()).toBeUndefined();
+  });
+});
+
+describe('toHead', () => {
+  it('returns a list with only the first element', () => {
+    expect(FlowList.of([1, 2, 3]).toHead().toArray()).toEqual([1]);
+  });
+
+  it('returns an empty list for an empty list', () => {
+    expect(FlowList.of([]).toHead().toArray()).toEqual([]);
+  });
+});
+
+describe('toIndex', () => {
+  it('returns a list with the element at the given index', () => {
+    expect(FlowList.of([1, 2, 3]).toIndex(1).toArray()).toEqual([2]);
+  });
+
+  it('supports negative indices', () => {
+    expect(FlowList.of([1, 2, 3]).toIndex(-1).toArray()).toEqual([3]);
+  });
+
+  it('returns an empty list for an out-of-bounds positive index', () => {
+    expect(FlowList.of([1, 2, 3]).toIndex(99).toArray()).toEqual([]);
+  });
+
+  it('returns an empty list for an out-of-bounds negative index', () => {
+    expect(FlowList.of([1, 2, 3]).toIndex(-99).toArray()).toEqual([]);
+  });
+});
+
+describe('tap', () => {
+  it('invokes fn for each element as a side effect', () => {
+    const results: number[] = [];
+    FlowList.of([1, 2, 3]).tap((x) => results.push(x));
+    expect(results).toEqual([1, 2, 3]);
+  });
+
+  it('returns the original elements unchanged', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .tap(() => {})
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.tap((_, _i, l) => expect(l).toBe(list));
+  });
+});
+
+describe('peek', () => {
+  it('passes the list to fn as a side effect', () => {
+    let seen: FlowList<number> | null = null;
+    const list = FlowList.of([1, 2, 3]);
+    list.peek((l) => {
+      seen = l;
+    });
+    expect(seen).toBe(list);
+  });
+
+  it('returns the original list', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.peek(() => {})).toBe(list);
+  });
+});
+
+describe('thru', () => {
+  it('returns the result of fn', () => {
+    expect(FlowList.of([1, 2, 3]).thru((l) => l.toArray())).toEqual([1, 2, 3]);
+  });
+
+  it('can return a non-FlowList value', () => {
+    expect(FlowList.of([1, 2, 3]).thru((l) => l.length)).toBe(3);
+  });
+});
+
+describe('inspect', () => {
+  it('logs the array with the default label', () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    FlowList.of([1, 2, 3]).inspect();
+    expect(spy).toHaveBeenCalledWith('Array Values --> ', [1, 2, 3]);
+    spy.mockRestore();
+  });
+
+  it('logs the array with a custom label', () => {
+    const spy = vi.spyOn(console, 'log').mockImplementation(() => {});
+    FlowList.of([1, 2, 3]).inspect('my list:');
+    expect(spy).toHaveBeenCalledWith('my list:', [1, 2, 3]);
+    spy.mockRestore();
+  });
+
+  it('returns the original list', () => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.inspect()).toBe(list);
+    vi.restoreAllMocks();
+  });
+});
+
+describe('tail', () => {
+  it('returns the last element', () => {
+    expect(FlowList.of([1, 2, 3]).tail()).toBe(3);
+  });
+
+  it('returns undefined for an empty list', () => {
+    expect(FlowList.of([]).tail()).toBeUndefined();
+  });
+});
+
+describe('toTail', () => {
+  it('returns a list with only the last element', () => {
+    expect(FlowList.of([1, 2, 3]).toTail().toArray()).toEqual([3]);
+  });
+
+  it('returns an empty list for an empty list', () => {
+    expect(FlowList.of([]).toTail().toArray()).toEqual([]);
+  });
+});
+
+describe('difference', () => {
+  it('returns elements not present in the given lists', () => {
+    expect(FlowList.of([1, 2, 3, 4]).difference([2, 4]).toArray()).toEqual([
+      1, 3,
+    ]);
+  });
+
+  it('accepts FlowList instances', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .difference(FlowList.of([2, 3]))
+        .toArray(),
+    ).toEqual([1]);
+  });
+
+  it('accepts multiple lists', () => {
+    expect(FlowList.of([1, 2, 3, 4]).difference([2], [4]).toArray()).toEqual([
+      1, 3,
+    ]);
+  });
+
+  it('returns all elements if no matches', () => {
+    expect(FlowList.of([1, 2, 3]).difference([99]).toArray()).toEqual([
+      1, 2, 3,
     ]);
   });
 });
 
-describe('FlowList - flattening, concat, flat', () => {
-  it('concat, append, prepend', () => {
-    const a = FlowList.of([1]);
-    expect(a.concat([2, 3]).toArray()).toEqual([1, 2, 3]);
-    expect(a.append(4, 5).toArray()).toEqual([1, 4, 5]);
-    expect(a.prepend(0).toArray()).toEqual([0, 1]);
-    expect(a.toArray()).toEqual([1]); // original unchanged
+describe('xor', () => {
+  it('returns elements unique to a single list', () => {
+    expect(FlowList.of([1, 2, 3]).xor([2, 3, 4]).toArray()).toEqual([1, 4]);
   });
 
-  it('flat flattens arrays and FlowList by depth', () => {
-    const a = FlowList.of([1, [2, [3]], FlowList.of([4, [5]])]);
-    const f1 = a.flat(1).toArray();
-    // depth-1 flatten: inner arrays and FlowList become flattened one level
-    expect(f1).toEqual([1, 2, [3], 4, [5]]);
-    const f2 = a.flat(2).toArray();
-    expect(f2).toEqual([1, 2, 3, 4, 5]);
-    expect(a.flat(Infinity).toArray()).toEqual([1, 2, 3, 4, 5]);
-    expect(a.flat().toArray()).toEqual([1, 2, [3], 4, [5]]);
-  });
-});
-
-describe('FlowList - set-like operations', () => {
-  it('uniq, compact, uniqBy and toSet', () => {
-    const a = FlowList.of([1, 2, 2, 0, null, undefined, false, 1]);
-    expect(a.uniq().toArray()).toEqual([1, 2, 0, null, undefined, false]);
-    expect(a.compact().toArray()).toEqual([1, 2, 2, 1]);
-
-    const objs = FlowList.of([{ id: 1 }, { id: 2 }, { id: 1 }]);
-    expect(objs.uniqBy('id').toArray()).toEqual([{ id: 1 }, { id: 2 }]);
-    expect(FlowList.of([1, 2, 3]).toSet()).toEqual(new Set([1, 2, 3]));
+  it('handles multiple lists', () => {
+    expect(FlowList.of([1, 2, 3]).xor([2, 3, 4], [3, 4, 5]).toArray()).toEqual([
+      1, 5,
+    ]);
   });
 
-  it('union merges inputs and deduplicates', () => {
-    const a = FlowList.of([1, 2, 3]);
-    const b = [3, 4];
-    const c = FlowList.of([2, 5]);
-    const union = a.union(b, c).toArray().sort();
-    expect(union).toEqual([1, 2, 3, 4, 5].sort());
+  it('returns no duplicates when a value appears multiple times within a single list', () => {
+    expect(FlowList.of([1, 1, 2]).xor([2, 3]).toArray()).toEqual([1, 3]);
   });
 
-  it('difference removes any elements present in other inputs', () => {
-    const a = FlowList.of([1, 2, 3]);
-    const b = [3, 4];
-    const c = FlowList.of([2, 5]);
-    expect(a.difference(b, c).toArray()).toEqual([1]);
+  it('accepts FlowList instances', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .xor(FlowList.of([2, 3, 4]))
+        .toArray(),
+    ).toEqual([1, 4]);
   });
 
-  it('xor returns elements present in exactly one input', () => {
-    const res = FlowList.of([1, 2])
-      .xor([2, 3], FlowList.of([1, 4]))
-      .toArray()
-      .sort();
-    expect(res).toEqual([3, 4].sort());
+  it('returns an empty list when all elements are shared', () => {
+    expect(FlowList.of([1, 2]).xor([1, 2]).toArray()).toEqual([]);
   });
 });
 
-describe('FlowList - grouping, partition, zip', () => {
-  it('groupBy groups by key', () => {
-    const a = FlowList.of(['aa', 'ab', 'ba']);
-    const g = a.groupBy((s: string) => s[0]).toArray();
-    // convert to map-like check
-    const obj = Object.fromEntries(g);
-    expect(obj['a']).toEqual(['aa', 'ab']);
-    expect(obj['b']).toEqual(['ba']);
+describe('intersection', () => {
+  it('returns elements common to all lists', () => {
+    expect(FlowList.of([1, 2, 3]).intersection([2, 3, 4]).toArray()).toEqual([
+      2, 3,
+    ]);
   });
 
-  it('partition returns [pass, fail]', () => {
-    const a = FlowList.of([1, 2, 3, 4]);
-    const p = a.partition((v: number) => v % 2 === 0).toArray();
-    expect(p).toEqual([
-      [2, 4],
+  it('accepts FlowList instances', () => {
+    expect(
+      FlowList.of([1, 2, 3])
+        .intersection(FlowList.of([2, 3]))
+        .toArray(),
+    ).toEqual([2, 3]);
+  });
+
+  it('returns an empty list when there is no overlap', () => {
+    expect(FlowList.of([1, 2]).intersection([3, 4]).toArray()).toEqual([]);
+  });
+
+  it('handles multiple lists', () => {
+    expect(
+      FlowList.of([1, 2, 3]).intersection([1, 2], [1, 3]).toArray(),
+    ).toEqual([1]);
+  });
+});
+
+describe('union', () => {
+  it('returns all unique elements across all lists', () => {
+    expect(FlowList.of([1, 2]).union([2, 3]).toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('accepts FlowList instances', () => {
+    expect(
+      FlowList.of([1, 2])
+        .union(FlowList.of([2, 3]))
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('handles multiple lists', () => {
+    expect(FlowList.of([1]).union([2], [3]).toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('deduplicates within a single list', () => {
+    expect(FlowList.of([1, 1, 2]).union([2, 3]).toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('partition', () => {
+  it('splits elements into passing and failing groups', () => {
+    const [pass, fail] = FlowList.of([1, 2, 3, 4])
+      .partition((x) => x % 2 === 0)
+      .toArray();
+    expect(pass).toEqual([2, 4]);
+    expect(fail).toEqual([1, 3]);
+  });
+
+  it('returns an empty pass group when nothing passes', () => {
+    const [pass, fail] = FlowList.of([1, 3])
+      .partition((x) => x % 2 === 0)
+      .toArray();
+    expect(pass).toEqual([]);
+    expect(fail).toEqual([1, 3]);
+  });
+
+  it('returns an empty fail group when everything passes', () => {
+    const [pass, fail] = FlowList.of([2, 4])
+      .partition((x) => x % 2 === 0)
+      .toArray();
+    expect(pass).toEqual([2, 4]);
+    expect(fail).toEqual([]);
+  });
+});
+
+describe('zip', () => {
+  it('zips two lists into tuples', () => {
+    expect(FlowList.of([1, 2, 3]).zip([4, 5, 6]).toArray()).toEqual([
+      [1, 4],
+      [2, 5],
+      [3, 6],
+    ]);
+  });
+
+  it('fills missing positions with undefined for unequal lengths', () => {
+    expect(FlowList.of([1, 2, 3]).zip([4, 5]).toArray()).toEqual([
+      [1, 4],
+      [2, 5],
+      [3, undefined],
+    ]);
+  });
+
+  it('handles multiple lists', () => {
+    expect(FlowList.of([1, 2]).zip([3, 4], [5, 6]).toArray()).toEqual([
+      [1, 3, 5],
+      [2, 4, 6],
+    ]);
+  });
+
+  it('accepts FlowList instances', () => {
+    expect(
+      FlowList.of([1, 2])
+        .zip(FlowList.of([3, 4]))
+        .toArray(),
+    ).toEqual([
       [1, 3],
-    ]);
-  });
-
-  it('zip with unequal lengths yields undefined for missing', () => {
-    const a = FlowList.of([1, 2]);
-    const z = a.zip([10], FlowList.of([20, 30, 40])).toArray();
-    expect(z).toEqual([
-      [1, 10, 20],
-      [2, undefined, 30],
-      [undefined, undefined, 40],
+      [2, 4],
     ]);
   });
 });
 
-describe('FlowList - batching and conversions', () => {
-  it('chunk', () => {
-    const a = FlowList.of([1, 2, 3, 4, 5]);
-    expect(a.chunk(3).toArray()).toEqual([
-      [1, 2, 3],
-      [4, 5],
-    ]);
+describe('groupBy', () => {
+  it('groups elements by a derived key', () => {
+    const result = FlowList.of([1, 2, 3, 4])
+      .groupBy((x) => (x % 2 === 0 ? 'even' : 'odd'))
+      .toArray();
+    expect(Object.fromEntries(result)).toEqual({ odd: [1, 3], even: [2, 4] });
   });
 
-  it('toArray, toMap, toObject, head/tail/toHead/toTail/toIndex', () => {
-    const pairs = FlowList.of([
-      ['a', 1],
-      ['b', 2],
-    ]);
-    expect(pairs.toMap().get('a')).toBe(1);
-    expect(pairs.toObject()).toEqual({ a: 1, b: 2 });
+  it('passes the FlowList instance as the third argument', () => {
+    const list = FlowList.of([1]);
+    list.groupBy((_, _i, l) => {
+      expect(l).toBe(list);
+      return 'key';
+    });
+  });
+});
 
-    const a = FlowList.of([9, 8, 7]);
-    expect(a.head()).toBe(9);
-    expect(a.tail()).toBe(7);
-    expect(a.toHead().toArray()).toEqual([9]);
-    expect(a.toTail().toArray()).toEqual([7]);
-    expect(a.toIndex(1).toArray()).toEqual([8]);
-    expect(a.toIndex(-1).toArray()).toEqual([7]);
+describe('sortBy', () => {
+  it('sorts by a derived key ascending', () => {
+    const list = FlowList.of([{ n: 3 }, { n: 1 }, { n: 2 }]);
+    expect(
+      list
+        .sortBy((x) => x.n)
+        .map((x) => x.n)
+        .toArray(),
+    ).toEqual([1, 2, 3]);
+  });
+
+  it('does not mutate the original', () => {
+    const list = FlowList.of([3, 1, 2]);
+    list.sortBy((x) => x);
+    expect(list.toArray()).toEqual([3, 1, 2]);
+  });
+
+  it('returns 0 for elements with equal sort keys', () => {
+    const list = FlowList.of([
+      { n: 1, id: 'a' },
+      { n: 1, id: 'b' },
+      { n: 2, id: 'c' },
+    ]);
+    expect(
+      list
+        .sortBy((x) => x.n)
+        .map((x) => x.id)
+        .toArray(),
+    ).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('toArray', () => {
+  it('returns a plain array of the elements', () => {
+    expect(FlowList.of([1, 2, 3]).toArray()).toEqual([1, 2, 3]);
+  });
+
+  it('returns a shallow copy, not a reference', () => {
+    const list = FlowList.of([1, 2, 3]);
+    expect(list.toArray()).not.toBe(list.toArray());
+  });
+});
+
+describe('toSet', () => {
+  it('converts the list to a Set', () => {
+    expect(FlowList.of([1, 2, 2, 3]).toSet()).toEqual(new Set([1, 2, 3]));
+  });
+});
+
+describe('toMap', () => {
+  it('converts [key, value] pairs to a Map', () => {
+    expect(
+      FlowList.of([
+        ['a', 1],
+        ['b', 2],
+      ] as [string, number][]).toMap(),
+    ).toEqual(
+      new Map([
+        ['a', 1],
+        ['b', 2],
+      ]),
+    );
+  });
+});
+
+describe('toObject', () => {
+  it('converts [key, value] pairs to a plain object', () => {
+    expect(
+      FlowList.of([
+        ['a', 1],
+        ['b', 2],
+      ] as [string, number][]).toObject(),
+    ).toEqual({ a: 1, b: 2 });
   });
 });

@@ -1,16 +1,22 @@
 {
-  "name": "@flow-tools/flow-structures",
+  "name": "@flow-tools-dev/flow-structures",
   "version": "1.0.0",
   "description": "Array and Object utility tools",
   "license": "MIT",
   "author": "Adam Allison",
   "type": "module",
   "main": "index.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "test": "vitest"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.5",
+    "happy-dom": "^20.9.0",
     "tsdown": "^0.20.3",
     "vitest": "^4.1.5"
   }

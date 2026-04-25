@@ -368,7 +368,7 @@ export class FlowList<T> {
    * @param start - The index to begin searching from.
    * @returns The index of the first match at or after `start`, or `-1` if not found.
    */
-  indexOf(el: T, start: number) {
+  indexOf(el: T, start: number = 0) {
     return this.array.indexOf(el, start);
   }
 
@@ -573,7 +573,7 @@ export class FlowList<T> {
    * @param items - One or more arrays or `FlowList` instances to concatenate.
    * @returns A new `FlowList` with the concatenated elements.
    */
-  concat(...items: ConcatArray<T>[]): FlowList<T> {
+  concat(...items: (T[] | FlowList<T>)[]): FlowList<T> {
     const out = [this.array, ...items].flatMap((item) =>
       FlowList.isFlowList(item) ? item.toArray() : item,
     );
