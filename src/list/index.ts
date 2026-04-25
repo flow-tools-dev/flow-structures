@@ -79,11 +79,9 @@ export class FlowList<T> {
 
   /**
    * MUTABLE
-   *
    * Wraps around the internal array.pop.
-   * @returns The last value of the list.
+   * @returns The last element of the list, or `undefined` if the list is empty.
    */
-
   pop() {
     return this.array.pop();
   }
@@ -91,10 +89,9 @@ export class FlowList<T> {
   /**
    * MUTABLE
    * Wraps around the internal array.push.
-   * @param items - Any item to pushed into the end of the List.
-   * @returns The length of the new list.
+   * @param items - One or more items to push to the end of the list.
+   * @returns The new length of the list.
    */
-
   push(...items: T[]) {
     return this.array.push(...items);
   }
@@ -102,17 +99,16 @@ export class FlowList<T> {
   /**
    * MUTABLE
    * Wraps around the internal array.shift.
-   * @returns The first element in the list.
+   * @returns The first element of the list, or `undefined` if the list is empty.
    */
-
   shift() {
     return this.array.shift();
   }
 
   /**
    * Wraps around the internal array.join.
-   * @param s The string to be used as a separator in the resulting string.
-   * @returns String of all elements in the array, divided by the separator.
+   * @param s - The separator string. Defaults to `','`.
+   * @returns A string of all elements joined by the separator.
    */
   join(s?: string) {
     return this.array.join(s);
@@ -121,29 +117,26 @@ export class FlowList<T> {
   /**
    * MUTABLE
    * Wraps around the internal array.unshift.
-   * @param items The items to be put at the beginning of the list.
+   * @param items - One or more items to insert at the beginning of the list.
    * @returns The new length of the list.
    */
-
   unshift(...items: T[]) {
     return this.array.unshift(...items);
   }
 
   /**
    * IMMUTABLE
-   * Wraps around the internal array.map, but passing in the List instance as the third argument.
-   * @param fn — A function that accepts up to three arguments - the element at index, the index, and the list instance itself.
-   * @returns A new list with the resulting elements.
-   *
+   * Wraps around the internal array.map, passing the list instance as the third argument instead of the raw array.
+   * @param fn - A callback receiving each element, its index, and the list.
+   * @returns A new `FlowList` with the mapped values.
    */
   map<U>(fn: (value: T, index: number, list: FlowList<T>) => U): FlowList<U> {
     return FlowList.of<U>(this.array.map((v, i) => fn(v, i, this)));
   }
 
   /**
-   * Wraps around the internal array.forEach, but passing in the list instance as the third argument.
-   * @param fn — A function that accepts up to three arguments - the element at index, the index, and the list instance itself.
-   * @returns void
+   * Wraps around the internal array.forEach, passing the list instance as the third argument instead of the raw array.
+   * @param fn - A callback receiving each element, its index, and the list.
    */
   forEach(fn: ListCallback<T, void>) {
     this.array.forEach((el: T, i: number) => fn(el, i, this));
@@ -162,9 +155,9 @@ export class FlowList<T> {
   /**
    * MUTABLE
    * Wraps around the internal array.fill.
-   * @param v The value to fill the list with.
-   * @param start The index to start filling the array at.
-   * @param end The end index to stop filling the array at.
+   * @param v - The value to fill with.
+   * @param start - The index to start filling at (inclusive).
+   * @param end - The index to stop filling at (exclusive).
    * @returns The mutated list.
    */
   fill<U>(v?: U, start?: number, end?: number) {
@@ -176,11 +169,11 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * An immutable version of the fill method.
-   * @param v The value to fill the list with.
-   * @param start The index to start filling the array at.
-   * @param end The end index to stop filling the array at.
-   * @returns A new list with the changed values.
+   * An immutable version of `fill`. Wraps around the internal array.map to produce a new list.
+   * @param v - The value to fill with.
+   * @param start - The index to start filling at (inclusive). Defaults to `0`.
+   * @param end - The index to stop filling at (exclusive). Defaults to the list length.
+   * @returns A new `FlowList` with the filled values.
    */
   toFilled<U>(v?: U, start: number = 0, end: number = this.length) {
     return FlowList.of<U>(
@@ -191,11 +184,10 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Maps over all elements in the list, and calls a callback on each one.
-   * Then flattens the list 1 level deep.
-   * This method flattens both arrays, and instances of FlowList.
-   * @param fn — A function that accepts up to three arguments - the element at index, the index, and the list instance itself.
-   * @returns A new list with the changed values
+   * Wraps around the internal array.flatMap, passing the list instance as the third argument instead of the raw array.
+   * Also flattens `FlowList` return values in addition to plain arrays.
+   * @param fn - A callback receiving each element, its index, and the list. May return a value, array, or `FlowList`.
+   * @returns A new `FlowList` with the mapped and flattened values.
    */
   flatMap<U>(fn: ListCallback<T, U | U[] | FlowList<U>>): FlowList<U> {
     const out: U[] = [];
@@ -214,11 +206,11 @@ export class FlowList<T> {
 
   /**
    * MUTABLE
-   * Copies part of the list to another location in the list, without modifying its length.
-   * @param target The index where to copy the elements to
-   * @param start The index to start copying elements from
-   * @param end The index to stop copying elements from (exclusive)
-   * @returns The same list instance with the changed values
+   * Wraps around the internal array.copyWithin.
+   * @param target - The index to copy elements to.
+   * @param start - The index to start copying from (inclusive).
+   * @param end - The index to stop copying from (exclusive).
+   * @returns The mutated list.
    */
   copyWithin(target: number, start: number, end?: number) {
     this.array.copyWithin(target, start, end);
@@ -227,11 +219,11 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list with a copy of part of the list copied to another location, without modifying the original or the length.
-   * @param target The index where to copy the elements to
-   * @param start The index to start copying elements from
-   * @param end The index to stop copying elements from (exclusive)
-   * @returns A new list instance with the changed values
+   * An immutable version of `copyWithin`. Operates on a shallow copy of the internal array.
+   * @param target - The index to copy elements to.
+   * @param start - The index to start copying from (inclusive).
+   * @param end - The index to stop copying from (exclusive).
+   * @returns A new `FlowList` with the copy applied.
    */
   toCopiedWithin(target: number, start: number, end?: number) {
     return FlowList.of<T>([...this.array].copyWithin(target, start, end));
@@ -239,9 +231,9 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Wraps around the internal array.filter.
-   * @param predicate A callback that takes an element, the index, and the list instance itself. Returns a boolean.
-   * @returns A new list with all values that predicate returned truthy for.
+   * Wraps around the internal array.filter, passing the list instance as the third argument instead of the raw array.
+   * @param predicate - A callback receiving each element, its index, and the list. Returns a boolean.
+   * @returns A new `FlowList` of elements for which the predicate returned truthy.
    */
   filter(predicate: ListPredicate<T>): FlowList<T> {
     return FlowList.of<T>(this.array.filter((v, i) => predicate(v, i, this)));
@@ -249,9 +241,9 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * The opposite of array.filter. Only keeps keeps that return falsy for the predicate.
-   * @param predicate A callback that takes an element, the index, and the list instance itself. Returns a boolean.
-   * @returns A new list with all values that predicate returned falsy for.
+   * The inverse of `filter`. Keeps only elements for which the predicate returns falsy.
+   * @param predicate - A callback receiving each element, its index, and the list. Returns a boolean.
+   * @returns A new `FlowList` of elements for which the predicate returned falsy.
    */
   reject(predicate: ListPredicate<T>) {
     return FlowList.of<T>(this.array.filter((v, i) => !predicate(v, i, this)));
@@ -260,16 +252,16 @@ export class FlowList<T> {
   /**
    * IMMUTABLE
    * Counts the number of elements for which the predicate returns truthy.
-   * @param predicate A callback that takes an element, the index, and the list instance itself. Returns a boolean.
-   * @returns The tally of how many values the predicate returned truthy for.
+   * @param predicate - A callback receiving each element, its index, and the list. Returns a boolean.
+   * @returns The number of elements for which the predicate returned truthy.
    */
   tally(predicate: ListPredicate<T>) {
     return this.array.filter((el, i) => predicate(el, i, this)).length;
   }
 
   /**
-   * Reduces the list to a single value by applying `fn` to each element from left to right.
-   * @param fn - Reducer callback receiving the accumulator, current element, index, and list.
+   * Wraps around the internal array.reduce, passing the list instance as the fourth argument instead of the raw array.
+   * @param fn - A reducer callback receiving the accumulator, current element, its index, and the list.
    * @param init - The initial accumulator value.
    * @returns The final accumulated value.
    */
@@ -281,8 +273,8 @@ export class FlowList<T> {
   }
 
   /**
-   * Reduces the list to a single value by applying `fn` to each element from right to left.
-   * @param fn - Reducer callback receiving the accumulator, current element, index, and list.
+   * Wraps around the internal array.reduceRight, passing the list instance as the fourth argument instead of the raw array.
+   * @param fn - A reducer callback receiving the accumulator, current element, its index, and the list.
    * @param init - The initial accumulator value.
    * @returns The final accumulated value.
    */
@@ -298,7 +290,7 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list with `items` inserted at the given index without modifying the original.
+   * Returns a new list with `items` inserted at the given index.
    * @param index - The position at which to insert.
    * @param items - One or more items to insert.
    * @returns A new `FlowList` with the items inserted.
@@ -308,25 +300,25 @@ export class FlowList<T> {
   }
 
   /**
-   * Wraps around the internal array.some.
+   * Wraps around the internal array.some, passing the list instance as the third argument instead of the raw array.
    * @param fn - A predicate receiving each element, its index, and the list.
-   * @returns `true` if any element passes, otherwise `false`.
+   * @returns `true` if any element satisfies the predicate, otherwise `false`.
    */
   some(fn: ListPredicate<T>): boolean {
     return this.array.some((v, i) => fn(v, i, this));
   }
 
   /**
-   * Wraps around the internal array.every.
+   * Wraps around the internal array.every, passing the list instance as the third argument instead of the raw array.
    * @param fn - A predicate receiving each element, its index, and the list.
-   * @returns `true` if all element pass, otherwise `false`.
+   * @returns `true` if all elements satisfy the predicate, otherwise `false`.
    */
   every(fn: ListPredicate<T>): boolean {
     return this.array.every((v, i) => fn(v, i, this));
   }
 
   /**
-   * Wraps around the internal array.find.
+   * Wraps around the internal array.find, passing the list instance as the third argument instead of the raw array.
    * @param fn - A predicate receiving each element, its index, and the list.
    * @returns The first matching element, or `undefined` if none is found.
    */
@@ -335,7 +327,7 @@ export class FlowList<T> {
   }
 
   /**
-   * Wraps around the internal array.findLast.
+   * Wraps around the internal array.findLast, passing the list instance as the third argument instead of the raw array.
    * @param fn - A predicate receiving each element, its index, and the list.
    * @returns The last matching element, or `undefined` if none is found.
    */
@@ -344,7 +336,7 @@ export class FlowList<T> {
   }
 
   /**
-   * Wraps around the internal array.findLastIndex.
+   * Wraps around the internal array.findLastIndex, passing the list instance as the third argument instead of the raw array.
    * @param fn - A predicate receiving each element, its index, and the list.
    * @returns The index of the last matching element, or `-1` if none is found.
    */
@@ -362,7 +354,7 @@ export class FlowList<T> {
   }
 
   /**
-   * Wraps around the internal array.findIndex.
+   * Wraps around the internal array.findIndex, passing the list instance as the third argument instead of the raw array.
    * @param fn - A predicate receiving each element, its index, and the list.
    * @returns The index of the first matching element, or `-1` if none is found.
    */
@@ -371,10 +363,10 @@ export class FlowList<T> {
   }
 
   /**
-   * Wraps around hte internal array.indexOf.
+   * Wraps around the internal array.indexOf.
    * @param el - The value to search for.
    * @param start - The index to begin searching from.
-   * @returns The index of the first match, or `-1` if not found.
+   * @returns The index of the first match at or after `start`, or `-1` if not found.
    */
   indexOf(el: T, start: number) {
     return this.array.indexOf(el, start);
@@ -390,7 +382,7 @@ export class FlowList<T> {
   }
 
   /**
-   * Wraps around the internal array.at.
+   * Wraps around the internal array.at. Supports negative indices.
    * @param index - The index to retrieve. Negative values count from the end.
    * @returns The element at `index`, or `undefined` if out of bounds.
    */
@@ -401,8 +393,7 @@ export class FlowList<T> {
   /**
    * IMMUTABLE
    * Wraps around the internal array.toReversed.
-   * Returns a new list with the elements in reverse order.
-   * @returns A new reversed `FlowList`.
+   * @returns A new `FlowList` with elements in reverse order.
    */
   toReversed() {
     return FlowList.of<T>(this.array.toReversed());
@@ -423,7 +414,7 @@ export class FlowList<T> {
    * Wraps around the internal array.with.
    * @param i - The index of the element to replace.
    * @param v - The replacement value.
-   * @returns A new `FlowList` with the element replaced.
+   * @returns A new `FlowList` with the element at `i` replaced by `v`.
    */
   with(i: number, v: T) {
     return FlowList.of<T>(this.array.with(i, v));
@@ -457,7 +448,7 @@ export class FlowList<T> {
    * Wraps around the internal array.slice.
    * @param start - The start index (inclusive). Defaults to `0`.
    * @param end - The end index (exclusive). Defaults to the list length.
-   * @returns A new `FlowList` slice.
+   * @returns A new `FlowList` containing the sliced elements.
    */
   slice(start?: number, end?: number): FlowList<T> {
     return FlowList.of<T>(this.array.slice(start, end));
@@ -467,7 +458,7 @@ export class FlowList<T> {
    * IMMUTABLE
    * Returns a new list containing the first `n` elements.
    * @param n - The number of elements to take. Returns an empty list if `n <= 0`.
-   * @returns A new `FlowList` with up to `n` elements.
+   * @returns A new `FlowList` with up to `n` leading elements.
    */
   take(n: number) {
     if (n <= 0) return FlowList.of<T>([]);
@@ -476,8 +467,7 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list containing the leading elements for which the predicate holds.
-   * Stops at the first element that fails.
+   * Returns a new list of leading elements for which the predicate holds, stopping at the first failure.
    * @param predicate - A predicate receiving each element, its index, and the list.
    * @returns A new `FlowList` of the leading passing elements.
    */
@@ -503,10 +493,10 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list containing the trailing elements for which the predicate holds.
-   * Stops at the first element from the right that fails.
+   * Returns a new list of trailing elements for which the predicate holds, stopping at the first failure from the right.
+   * Elements are returned in their original order.
    * @param predicate - A predicate receiving each element, its index, and the list.
-   * @returns A new `FlowList` of the trailing passing elements, in original order.
+   * @returns A new `FlowList` of the trailing passing elements.
    */
   takeRightWhile(predicate: ListPredicate<T>) {
     const take = [];
@@ -531,6 +521,7 @@ export class FlowList<T> {
   /**
    * IMMUTABLE
    * Drops leading elements for which the predicate holds, then returns the rest.
+   * Stops dropping at the first element that fails the predicate.
    * @param predicate - A predicate receiving each element, its index, and the list.
    * @returns A new `FlowList` starting from the first element that fails the predicate.
    */
@@ -559,6 +550,7 @@ export class FlowList<T> {
   /**
    * IMMUTABLE
    * Drops trailing elements for which the predicate holds, then returns the rest.
+   * Stops dropping at the first element from the right that fails the predicate.
    * @param predicate - A predicate receiving each element, its index, and the list.
    * @returns A new `FlowList` with the trailing passing elements removed.
    */
@@ -576,17 +568,22 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list with the given arrays or concat-compatible values appended.
-   * @param items - Arrays or `ConcatArray` values to concatenate.
+   * Returns a new list with the elements of all given arrays or `FlowList` instances appended.
+   * Unlike the native array.concat, this method accepts `FlowList` instances directly.
+   * @param items - One or more arrays or `FlowList` instances to concatenate.
    * @returns A new `FlowList` with the concatenated elements.
    */
   concat(...items: ConcatArray<T>[]): FlowList<T> {
-    return FlowList.of(this.array.concat(...items));
+    const out = [this.array, ...items].flatMap((item) =>
+      FlowList.isFlowList(item) ? item.toArray() : item,
+    );
+    return FlowList.of(out);
   }
 
   /**
    * IMMUTABLE
    * Flattens nested arrays or `FlowList` instances up to `depth` levels deep.
+   * Unlike the native array.flat, this method also flattens nested `FlowList` instances.
    * @param depth - The maximum recursion depth. Defaults to `1`.
    * @returns A new flattened `FlowList`.
    */
@@ -617,18 +614,40 @@ export class FlowList<T> {
     return this.flat(Infinity);
   }
 
+  /**
+   * Returns an iterator over the list's elements, enabling `for...of` usage.
+   */
   [Symbol.iterator](): Iterator<T> {
     return this.array[Symbol.iterator]();
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list with `items` added to the end.
+   * @param items - One or more items to append.
+   * @returns A new `FlowList` with the items appended.
+   */
   append(...items: T[]) {
     return FlowList.of<T>([...this.array, ...items]);
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list with `items` added to the beginning.
+   * @param items - One or more items to prepend.
+   * @returns A new `FlowList` with the items prepended.
+   */
   prepend(...items: T[]) {
     return FlowList.of<T>([...items, ...this.array]);
   }
 
+  /**
+   * IMMUTABLE
+   * Splits the list into consecutive chunks of size `n`.
+   * The final chunk may be smaller if the list does not divide evenly.
+   * @param n - The size of each chunk.
+   * @returns A new `FlowList` of `T[]` chunks.
+   */
   chunk(n: number) {
     const agg: T[][] = [];
     let chunk: T[] = [];
@@ -643,14 +662,30 @@ export class FlowList<T> {
     return FlowList.of<T[]>(agg);
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list with all falsy values removed.
+   * @returns A new `FlowList` containing only truthy elements.
+   */
   compact() {
     return FlowList.of<T>(this.array.filter(Boolean));
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list with duplicate values removed, preserving first occurrence order.
+   * @returns A new `FlowList` of unique elements.
+   */
   uniq() {
     return FlowList.of<T>(Array.from(new Set(this.array)));
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list with duplicates removed based on a property key, preserving first occurrence order.
+   * @param prop - The property key to determine uniqueness by.
+   * @returns A new `FlowList` of elements unique by `prop`.
+   */
   uniqBy<K extends keyof T>(prop: K) {
     const seen = new Set<T[K]>();
     const arr = this.array.reduce((acc, curr, i) => {
@@ -663,14 +698,28 @@ export class FlowList<T> {
     return FlowList.of<T>(arr);
   }
 
+  /**
+   * Returns the first element of the list, or `undefined` if the list is empty.
+   */
   head() {
     return this.array[0];
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list containing only the first element.
+   * @returns A `FlowList` with the first element, or an empty `FlowList` if the list is empty.
+   */
   toHead() {
     return FlowList.of<T>(this.array.length ? [this.array[0]] : []);
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list containing only the element at index `n`. Supports negative indices.
+   * @param n - The index to retrieve. Negative values count from the end.
+   * @returns A `FlowList` with the element at `n`, or an empty `FlowList` if out of bounds.
+   */
   toIndex(n: number) {
     if (n >= 0 && n < this.array.length) return FlowList.of<T>([this.array[n]]);
     if (n < 0 && n >= -this.array.length)
@@ -678,6 +727,13 @@ export class FlowList<T> {
     return FlowList.of<T>([]);
   }
 
+  /**
+   * IMMUTABLE
+   * Invokes `fn` on each element as a side effect, then returns a new list with the original elements unchanged.
+   * Useful for logging or debugging mid-chain without affecting values.
+   * @param fn - A callback receiving each element, its index, and the list.
+   * @returns A new `FlowList` with the original elements.
+   */
   tap(fn: ListCallback<T, void>) {
     return FlowList.of<T>(
       this.array.map((el, idx) => {
@@ -687,30 +743,61 @@ export class FlowList<T> {
     );
   }
 
+  /**
+   * Passes the entire list to `fn` as a side effect, then returns the list unchanged.
+   * Useful for inspecting or logging the list as a whole mid-chain.
+   * @param fn - A callback receiving the list.
+   * @returns The original `FlowList`.
+   */
   peek(fn: (list: FlowList<T>) => void) {
     fn(this);
     return this;
   }
 
+  /**
+   * Passes the list to `fn` and returns whatever `fn` returns.
+   * Use this to break out of the `FlowList` chain into an arbitrary value.
+   * @param fn - A transform function receiving the list.
+   * @returns The return value of `fn`.
+   */
   thru(fn: (list: FlowList<T>) => void) {
     return fn(this);
   }
 
+  /**
+   * Logs the internal array to the console with an optional label, then returns the list unchanged.
+   * @param label - A prefix for the log output. Defaults to `'Array Values --> '`.
+   * @returns The original `FlowList`.
+   */
   inspect(label = 'Array Values --> ') {
     console.log(label, this.array);
     return this;
   }
 
+  /**
+   * Returns the last element of the list, or `undefined` if the list is empty.
+   */
   tail() {
     return this.array[this.array.length - 1];
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list containing only the last element.
+   * @returns A `FlowList` with the last element, or an empty `FlowList` if the list is empty.
+   */
   toTail() {
     return FlowList.of<T>(
       this.array.length ? [this.array[this.array.length - 1]] : [],
     );
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list of elements not present in any of the given lists.
+   * @param lists - One or more arrays or `FlowList` instances to exclude.
+   * @returns A new `FlowList` containing only elements unique to this list.
+   */
   difference(...lists: (T[] | FlowList<T>)[]) {
     const exclude = FlowList.of(lists)
       .flatMap((a) => a)
@@ -718,6 +805,12 @@ export class FlowList<T> {
     return FlowList.of<T>(this.array.filter((el) => !exclude.has(el)));
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list of elements that appear in exactly one of the input lists (symmetric difference).
+   * @param lists - One or more arrays or `FlowList` instances to compare against.
+   * @returns A new `FlowList` of elements unique to a single list.
+   */
   xor(...lists: (T[] | FlowList<T>)[]) {
     const sets = [this.array, ...lists].map((a) => new Set(a));
     const result = sets
@@ -726,12 +819,24 @@ export class FlowList<T> {
     return FlowList.of<T>(result);
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list of elements present in this list and all given lists.
+   * @param lists - One or more arrays or `FlowList` instances to intersect with.
+   * @returns A new `FlowList` of common elements.
+   */
   intersection(...lists: (T[] | FlowList<T>)[]) {
     return FlowList.of<T>(
       this.array.filter((v) => lists.every((arr) => arr.includes(v))),
     );
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new deduplicated list of all elements across this list and all given lists.
+   * @param lists - One or more arrays or `FlowList` instances to merge.
+   * @returns A new `FlowList` of unique elements from all lists.
+   */
   union(...lists: (T[] | FlowList<T>)[]) {
     const allLists = [this.array, ...lists].flatMap((a) =>
       FlowList.isFlowList(a) ? a.toArray() : a,
@@ -739,6 +844,12 @@ export class FlowList<T> {
     return FlowList.of(allLists).uniq();
   }
 
+  /**
+   * IMMUTABLE
+   * Splits the list into two groups based on the predicate.
+   * @param predicate - A predicate receiving each element, its index, and the list.
+   * @returns A `FlowList` of two arrays: `[passing, failing]`.
+   */
   partition(predicate: ListPredicate<T>): FlowList<T[]> {
     const pass: T[] = [];
     const fail: T[] = [];
@@ -749,6 +860,13 @@ export class FlowList<T> {
     return FlowList.of<T[]>([pass, fail]);
   }
 
+  /**
+   * IMMUTABLE
+   * Zips this list with one or more lists into a list of tuples.
+   * The result length matches the longest input; missing positions are filled with `undefined`.
+   * @param lists - One or more arrays or `FlowList` instances to zip with.
+   * @returns A new `FlowList` of element tuples.
+   */
   zip<U extends T>(...lists: (FlowList<U> | U[])[]) {
     // normalize everything to arrays
     const allLists: (U[] | FlowList<U>)[] = [this.array as U[], ...lists];
@@ -764,6 +882,12 @@ export class FlowList<T> {
     return FlowList.of<U[]>(zipped);
   }
 
+  /**
+   * IMMUTABLE
+   * Groups elements by a derived key, returning a list of `[key, elements[]]` pairs.
+   * @param fn - A callback returning a `PropertyKey` for each element.
+   * @returns A `FlowList` of `[PropertyKey, T[]]` entries.
+   */
   groupBy(fn: ListCallback<T, PropertyKey>) {
     const results = this.array.reduce<Record<PropertyKey, T[]>>(
       (acc, curr, i) => {
@@ -777,6 +901,12 @@ export class FlowList<T> {
     return FlowList.of<[PropertyKey, T[]]>(Object.entries(results));
   }
 
+  /**
+   * IMMUTABLE
+   * Returns a new list sorted by a derived key in ascending order.
+   * @param fn - A function returning a comparable sort key for each element.
+   * @returns A new sorted `FlowList`.
+   */
   sortBy<U>(fn: (value: T, list: FlowList<T>) => U): FlowList<T> {
     return FlowList.of(
       this.array.toSorted((a, b) => {
@@ -789,18 +919,35 @@ export class FlowList<T> {
     );
   }
 
+  /**
+   * Returns a shallow copy of the internal array.
+   * @returns A plain `T[]`.
+   */
   toArray() {
     return [...this.array];
   }
+
+  /**
+   * Converts the list to a `Set`.
+   * @returns A `Set<T>` of the list's elements.
+   */
 
   toSet() {
     return new Set<T>(this.array);
   }
 
+  /**
+   * Converts the list to a `Map`, treating each element as a `[key, value]` pair.
+   * @returns A `Map` built from the list's elements.
+   */
   toMap() {
     return new Map(this.array as [PropertyKey, T][]);
   }
 
+  /**
+   * Converts the list to a plain object, treating each element as a `[key, value]` pair.
+   * @returns A `Record` built from the list's elements.
+   */
   toObject() {
     return Object.fromEntries<T>(this.array as [PropertyKey, T][]);
   }
