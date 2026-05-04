@@ -144,7 +144,7 @@ export class FlowList<T> {
 
   /**
    * Works exactly like forEach, but starts from the end of the list.
-   * @param fn — A function that accepts up to three arguments - the element at index, the index, and the list instance itself.
+   * @param fn - A callback receiving each element, its index, and the list.
    */
   forEachRight(fn: ListCallback<T, void>) {
     for (let i = this.array.length - 1; i >= 0; i--) {
@@ -649,6 +649,8 @@ export class FlowList<T> {
    * @returns A new `FlowList` of `T[]` chunks.
    */
   chunk(n: number) {
+    if (n <= 0) return FlowList.of<T[]>([]);
+
     const agg: T[][] = [];
     let chunk: T[] = [];
     this.array.forEach((el) => {
@@ -731,7 +733,7 @@ export class FlowList<T> {
    * Invokes `fn` on each element as a side effect, then returns the same list.
    * Useful for logging or debugging mid-chain without affecting values.
    * @param fn - A callback receiving each element, its index, and the list.
-   * @returns A new `FlowList` with the original elements.
+   * @returns The original `FlowList`.
    */
   tap(fn: ListCallback<T, void>) {
     this.array.forEach((el, idx) => fn(el, idx, this));

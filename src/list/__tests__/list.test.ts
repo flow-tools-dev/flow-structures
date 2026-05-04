@@ -956,6 +956,10 @@ describe('chunk', () => {
   it('returns empty array if negative n passed in.', () => {
     expect(FlowList.of([1, 2]).chunk(-1).toArray()).toEqual([]);
   });
+
+  it('returns empty array if 0 passed in.', () => {
+    expect(FlowList.of([1, 2]).chunk(0).toArray()).toEqual([]);
+  });
 });
 
 describe('compact', () => {

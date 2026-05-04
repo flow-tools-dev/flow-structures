@@ -1,5 +1,5 @@
 export type Entry<K, V> = readonly [K, V];
-export type FlowCallback<K, V, R> = (
+export type CollectionCallback<K, V, R> = (
   value: V,
   key: K,
   collection: FlowCollection<K, V>,
@@ -163,7 +163,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The first matching value, or `undefined` if none is found.
    */
-  find(predicate: FlowCallback<K, V, boolean>) {
+  find(predicate: CollectionCallback<K, V, boolean>) {
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) return v;
     }
@@ -174,7 +174,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The last matching value, or `undefined` if none is found.
    */
-  findLast(predicate: FlowCallback<K, V, boolean>) {
+  findLast(predicate: CollectionCallback<K, V, boolean>) {
     let el;
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) el = v;
@@ -187,7 +187,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The first matching `[key, value]` tuple, or `undefined` if none is found.
    */
-  findEntry(predicate: FlowCallback<K, V, boolean>) {
+  findEntry(predicate: CollectionCallback<K, V, boolean>) {
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) return [k, v];
     }
@@ -198,7 +198,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The last matching `[key, value]` tuple, or `undefined` if none is found.
    */
-  findLastEntry(predicate: FlowCallback<K, V, boolean>) {
+  findLastEntry(predicate: CollectionCallback<K, V, boolean>) {
     let el;
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) el = [k, v];
@@ -212,7 +212,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns A `FlowCollection` with two entries: `true` for passing values, `false` for failing values.
    */
-  partition(predicate: FlowCallback<K, V, boolean>) {
+  partition(predicate: CollectionCallback<K, V, boolean>) {
     const truthy: V[] = [];
     const falsy: V[] = [];
     for (const [k, v] of this.collection) {
@@ -233,7 +233,7 @@ export class FlowCollection<K, V> {
    * @returns A new `FlowCollection` of the merged resulting entries.
    */
   flatMap<NK, NV>(
-    fn: FlowCallback<K, V, Source<NK, NV>>,
+    fn: CollectionCallback<K, V, Source<NK, NV>>,
   ): FlowCollection<NK, NV> {
     const m = new Map<NK, NV>();
     for (const [k, v] of this.collection) {
@@ -264,7 +264,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The number of entries for which the predicate returned truthy.
    */
-  tally(predicate: FlowCallback<K, V, boolean>) {
+  tally(predicate: CollectionCallback<K, V, boolean>) {
     return this.filter(predicate).size;
   }
 
@@ -331,7 +331,7 @@ export class FlowCollection<K, V> {
    * @param fn - A callback receiving each value, its key, and the collection.
    * @returns A new `FlowCollection` with the mapped values.
    */
-  map<U>(fn: FlowCallback<K, V, U>) {
+  map<U>(fn: CollectionCallback<K, V, U>) {
     const m = new Map<K, U>();
     for (const [k, v] of this.collection) {
       m.set(k, fn(v, k, this));
@@ -345,7 +345,7 @@ export class FlowCollection<K, V> {
    * @param fn - A callback receiving each value, its key, and the collection. Returns a `[newKey, newValue]` tuple.
    * @returns A new `FlowCollection` with the remapped entries.
    */
-  mapEntries<NK, NV>(fn: FlowCallback<K, V, [NK, NV]>) {
+  mapEntries<NK, NV>(fn: CollectionCallback<K, V, [NK, NV]>) {
     const m = new Map<NK, NV>();
     for (const [k, v] of this.collection) {
       const [key, value] = fn(v, k, this);
@@ -360,7 +360,7 @@ export class FlowCollection<K, V> {
    * @param fn - A callback receiving each value, its key, and the collection. Returns the new key.
    * @returns A new `FlowCollection` with the remapped keys.
    */
-  mapKeys<NK>(fn: FlowCallback<K, V, NK>) {
+  mapKeys<NK>(fn: CollectionCallback<K, V, NK>) {
     const m = new Map<NK, V>();
     for (const [k, v] of this.collection) {
       const newK = fn(v, k, this);
@@ -376,7 +376,7 @@ export class FlowCollection<K, V> {
    * @param fn - A callback returning a group key for each entry.
    * @returns A new `FlowCollection<G, V[]>` of grouped values.
    */
-  groupBy<G>(fn: FlowCallback<K, V, G>): FlowCollection<G, V[]> {
+  groupBy<G>(fn: CollectionCallback<K, V, G>): FlowCollection<G, V[]> {
     const grouped = new Map<G, V[]>();
     for (const [k, v] of this.collection) {
       const key = fn(v, k, this);
@@ -393,7 +393,7 @@ export class FlowCollection<K, V> {
    * @returns A new sorted `FlowCollection`.
    */
   sortBy(
-    fn: FlowCallback<K, V, string | number | boolean>,
+    fn: CollectionCallback<K, V, string | number | boolean>,
   ): FlowCollection<K, V> {
     const sorted = [...this.collection].sort(([k1, v1], [k2, v2]) => {
       const a = fn(v1, k1, this);
@@ -420,7 +420,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns `true` if all entries pass, otherwise `false`.
    */
-  every(predicate: FlowCallback<K, V, boolean>) {
+  every(predicate: CollectionCallback<K, V, boolean>) {
     for (const [k, v] of this.collection) {
       if (!predicate(v, k, this)) return false;
     }
@@ -432,7 +432,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns `true` if any entry passes, otherwise `false`.
    */
-  some(predicate: FlowCallback<K, V, boolean>) {
+  some(predicate: CollectionCallback<K, V, boolean>) {
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) return true;
     }
@@ -445,7 +445,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns A new `FlowCollection` of passing entries.
    */
-  filter(predicate: FlowCallback<K, V, boolean>) {
+  filter(predicate: CollectionCallback<K, V, boolean>) {
     const m = new Map<K, V>();
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) m.set(k, v);
@@ -459,7 +459,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns A new `FlowCollection` of failing entries.
    */
-  reject(predicate: FlowCallback<K, V, boolean>) {
+  reject(predicate: CollectionCallback<K, V, boolean>) {
     const m = new Map<K, V>();
     for (const [k, v] of this.collection) {
       if (!predicate(v, k, this)) m.set(k, v);
@@ -512,7 +512,7 @@ export class FlowCollection<K, V> {
    * Wraps around the internal Map.forEach, passing the collection instance as the third argument instead of the raw map.
    * @param fn - A callback receiving each value, its key, and the collection.
    */
-  forEach(fn: FlowCallback<K, V, void>) {
+  forEach(fn: CollectionCallback<K, V, void>) {
     this.collection.forEach((v, k) => fn(v, k, this));
   }
 
@@ -520,7 +520,7 @@ export class FlowCollection<K, V> {
    * Works like `forEach` but iterates from the last entry to the first.
    * @param fn - A callback receiving each value, its key, and the collection.
    */
-  forEachRight(fn: FlowCallback<K, V, void>) {
+  forEachRight(fn: CollectionCallback<K, V, void>) {
     const entries = [...this.collection];
     for (let i = entries.length - 1; i >= 0; i--) {
       const [k, v] = entries[i];
@@ -590,7 +590,7 @@ export class FlowCollection<K, V> {
    * @param fn - A callback receiving each value, its key, and the collection.
    * @returns A new `FlowCollection` with the original entries.
    */
-  tap(fn: FlowCallback<K, V, void>) {
+  tap(fn: CollectionCallback<K, V, void>) {
     this.collection.forEach((v, k) => fn(v, k, this));
     return this;
   }
