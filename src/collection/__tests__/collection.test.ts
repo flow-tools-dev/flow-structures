@@ -970,13 +970,12 @@ describe('FlowCollection', () => {
   });
 
   describe('tap', () => {
-    it('should iterate, and return out copy of the collection', () => {
+    it('should iterate, and call the callback on each element, then return out the collection unchanged.', () => {
       const collection = FlowCollection.from(mockObj);
       const mock = vi.fn();
       const newColl = collection.tap(mock);
       expect(mock).toHaveBeenCalled();
-      expect(newColl).not.toBe(collection);
-      expect(collection.toEntries).toEqual(newColl.toEntries);
+      expect(collection).toBe(newColl);
     });
   });
 

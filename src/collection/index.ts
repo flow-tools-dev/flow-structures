@@ -333,6 +333,7 @@ export class FlowCollection<K, V> {
   /**
    * IMMUTABLE
    * Groups entries by a derived key, collecting values into arrays.
+   * The resulting collection has group keys as keys and arrays of matching values as values.
    * @param fn - A callback returning a group key for each entry.
    * @returns A new `FlowCollection<G, V[]>` of grouped values.
    */
@@ -341,7 +342,7 @@ export class FlowCollection<K, V> {
     for (const [k, v] of this.collection) {
       const key = fn(v, k, this);
       if (!grouped.has(key)) grouped.set(key, []);
-      grouped.get(key)?.push(v);
+      grouped.get(key)!.push(v);
     }
     return new FlowCollection(grouped);
   }
@@ -424,7 +425,7 @@ export class FlowCollection<K, V> {
     for (const [k, v] of this.collection) {
       if (!predicate(v, k, this)) m.set(k, v);
     }
-    return FlowCollection.of<K, V>(m);
+    return new FlowCollection<K, V>(m);
   }
 
   /**
