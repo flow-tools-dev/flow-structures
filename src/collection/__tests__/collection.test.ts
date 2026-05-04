@@ -232,6 +232,28 @@ describe('FlowCollection', () => {
     });
   });
 
+  describe('update', () => {
+    it('updates the value at the given key', () => {
+      const col = FlowCollection.from({ a: 1, b: 2, c: 3 });
+      expect(col.update('a', (v) => v + 10).toObject()).toEqual({
+        a: 11,
+        b: 2,
+        c: 3,
+      });
+    });
+
+    it('returns the original collection if the key does not exist', () => {
+      const col = FlowCollection.from({ a: 1 });
+      expect(col.update('z' as any, (v) => v)).toBe(col);
+    });
+
+    it('does not mutate the original', () => {
+      const col = FlowCollection.from({ a: 1, b: 2 });
+      col.update('a', (v) => v + 10);
+      expect(col.toObject()).toEqual({ a: 1, b: 2 });
+    });
+  });
+
   describe('without', () => {
     it('should return a new collection without the key, and not modify the original', () => {
       const og = FlowCollection.from({ ...mockObj, c: 3 });

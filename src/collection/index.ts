@@ -107,6 +107,21 @@ export class FlowCollection<K, V> {
 
   /**
    * IMMUTABLE
+   * Returns a new collection with the value at `key` transformed by `fn`.
+   * If the key does not exist, the original collection is returned unchanged.
+   * @param key - The key of the entry to update.
+   * @param fn - A function receiving the current value and returning the new value.
+   * @returns A new `FlowCollection` with the updated entry, or the original if the key was not found.
+   */
+  update(key: K, fn: (value: V) => V): FlowCollection<K, V> {
+    if (!this.collection.has(key)) return this;
+    const m = new Map(this.collection);
+    m.set(key, fn(this.collection.get(key) as V));
+    return new FlowCollection(m);
+  }
+
+  /**
+   * IMMUTABLE
    * Returns a new collection with the given key-value pair inserted at the beginning.
    * If the key already exists, it is moved to the front.
    * @param key - The key to prepend.
