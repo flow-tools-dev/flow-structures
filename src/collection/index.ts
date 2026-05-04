@@ -25,14 +25,7 @@ export class FlowCollection<K, V> {
     this.collection = map;
   }
 
-  /**
-   * Checks if a value is a FlowCollection instance.
-   * @param v - The value to check.
-   * @returns `true` if `v` is a `FlowCollection`, otherwise `false`.
-   */
-  static isFlowCollection(v: unknown): v is FlowCollection<unknown, unknown> {
-    return v instanceof FlowCollection;
-  }
+
 
   /**
    * Creates a new FlowCollection from an iterable of `[key, value]` entries.

@@ -1,9 +1,8 @@
-import { FlowCollection, Entry, Source } from './collection';
-import { FlowList } from './list';
+import { FlowCollection, Entry, Source, isPlainObject } from './collection';
+import { FlowList, ListCallback, ListPredicate } from './list';
 
-export { FlowCollection };
-export type { Entry, Source };
-export { FlowList };
+export { FlowCollection, FlowList, isPlainObject };
+export type { Entry, Source, ListCallback, ListPredicate };
 
 export const listOf = <T>(v: T[]) => FlowList.of(v);
 export const listFrom = <T>(v: Iterable<T> | ArrayLike<T> | FlowList<T>) =>
