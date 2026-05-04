@@ -728,19 +728,14 @@ export class FlowList<T> {
   }
 
   /**
-   * IMMUTABLE
-   * Invokes `fn` on each element as a side effect, then returns a new list with the original elements unchanged.
+   * Invokes `fn` on each element as a side effect, then returns the same list.
    * Useful for logging or debugging mid-chain without affecting values.
    * @param fn - A callback receiving each element, its index, and the list.
    * @returns A new `FlowList` with the original elements.
    */
   tap(fn: ListCallback<T, void>) {
-    return FlowList.of<T>(
-      this.array.map((el, idx) => {
-        fn(el, idx, this);
-        return el;
-      }),
-    );
+    this.array.forEach((el, idx) => fn(el, idx, this));
+    return this;
   }
 
   /**

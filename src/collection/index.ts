@@ -9,7 +9,9 @@ export type Source<K, V> =
   | Iterable<readonly [K, V]>
   | (K extends PropertyKey ? Record<K, V> : never);
 
-export const isPlainObject = (value: unknown): value is Record<PropertyKey, any> => {
+export const isPlainObject = (
+  value: unknown,
+): value is Record<PropertyKey, any> => {
   if (typeof value !== 'object' || value === null) return false;
 
   const proto = Object.getPrototypeOf(value);
@@ -543,14 +545,14 @@ export class FlowCollection<K, V> {
   }
 
   /**
-   * Invokes `fn` on each entry as a side effect, then returns a new collection with the original entries unchanged.
+   * Invokes `fn` on each entry as a side effect, then returns the same collection.
    * Useful for logging or debugging mid-chain without affecting values.
    * @param fn - A callback receiving each value, its key, and the collection.
    * @returns A new `FlowCollection` with the original entries.
    */
   tap(fn: FlowCallback<K, V, void>) {
     this.collection.forEach((v, k) => fn(v, k, this));
-    return FlowCollection.of(this.collection);
+    return this;
   }
 
   /**
@@ -559,7 +561,7 @@ export class FlowCollection<K, V> {
    * @param fn - A callback receiving the collection.
    * @returns The original `FlowCollection`.
    */
-  peek(fn: (list: FlowCollection<K, V>) => void) {
+  peek(fn: (collection: FlowCollection<K, V>) => void) {
     fn(this);
     return this;
   }
@@ -570,7 +572,7 @@ export class FlowCollection<K, V> {
    * @param fn - A transform function receiving the collection.
    * @returns The return value of `fn`.
    */
-  thru(fn: (list: FlowCollection<K, V>) => void) {
+  thru(fn: (collection: FlowCollection<K, V>) => void) {
     return fn(this);
   }
 
