@@ -25,7 +25,14 @@ export class FlowCollection<K, V> {
     this.collection = map;
   }
 
-
+  /**
+   * Checks if a value is a FlowCollection instance.
+   * @param v - The value to check.
+   * @returns `true` if `v` is a `FlowCollection`, otherwise `false`.
+   */
+  static isFlowCollection(v: unknown): v is FlowCollection<unknown, unknown> {
+    return v instanceof FlowCollection;
+  }
 
   /**
    * Creates a new FlowCollection from an iterable of `[key, value]` entries.
@@ -171,6 +178,30 @@ export class FlowCollection<K, V> {
     let el;
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) el = v;
+    }
+    return el;
+  }
+
+  /**
+   * Returns the first `[key, value]` entry for which the predicate returns truthy.
+   * @param predicate - A callback receiving each value, its key, and the collection.
+   * @returns The first matching `[key, value]` tuple, or `undefined` if none is found.
+   */
+  findEntry(predicate: FlowCallback<K, V, boolean>) {
+    for (const [k, v] of this.collection) {
+      if (predicate(v, k, this)) return [k, v];
+    }
+  }
+
+  /**
+   * Returns the last `[key, value]` entry for which the predicate returns truthy.
+   * @param predicate - A callback receiving each value, its key, and the collection.
+   * @returns The last matching `[key, value]` tuple, or `undefined` if none is found.
+   */
+  findLastEntry(predicate: FlowCallback<K, V, boolean>) {
+    let el;
+    for (const [k, v] of this.collection) {
+      if (predicate(v, k, this)) el = [k, v];
     }
     return el;
   }

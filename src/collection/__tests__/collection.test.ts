@@ -1063,6 +1063,35 @@ describe('FlowCollection', () => {
       expect(collection.toKeys()).toEqual(['a', 'b']);
     });
   });
+
+  describe('findEntry', () => {
+    it('returns the first matching [key, value] tuple', () => {
+      const col = FlowCollection.from({ a: 1, b: 2, c: 3 });
+      expect(col.findEntry((v) => v > 1)).toEqual(['b', 2]);
+    });
+
+    it('returns undefined if no entry matches', () => {
+      const col = FlowCollection.from({ a: 1, b: 2 });
+      expect(col.findEntry((v) => v > 99)).toBeUndefined();
+    });
+  });
+
+  describe('findLastEntry', () => {
+    it('returns the last matching [key, value] tuple', () => {
+      const col = FlowCollection.from({ a: 1, b: 2, c: 3 });
+      expect(col.findLastEntry((v) => v < 3)).toEqual(['b', 2]);
+    });
+
+    it('returns undefined if no entry matches', () => {
+      const col = FlowCollection.from({ a: 1, b: 2 });
+      expect(col.findLastEntry((v) => v > 99)).toBeUndefined();
+    });
+
+    it('returns the last match not the first when multiple entries match', () => {
+      const col = FlowCollection.from({ a: 1, b: 2, c: 1 });
+      expect(col.findLastEntry((v) => v === 1)).toEqual(['c', 1]);
+    });
+  });
 });
 
 describe('utils', () => {
