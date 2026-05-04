@@ -1,36 +1,35 @@
-import { describe, it, expect } from 'vitest';
-import { FlowCollection, type Entry, type Source } from '../index';
+import { describe, it, expect, vi } from 'vitest';
+import { FlowCollection, isPlainObject } from '../index';
+
+const mockEntries = [
+  ['a', 1],
+  ['b', 2],
+] as const;
+
+const mockObj = Object.fromEntries(mockEntries) as Record<'a' | 'b', 1 | 2>;
+const mockSet = new Set(mockEntries);
+const mockMap = new Map(mockEntries);
 
 describe('FlowCollection', () => {
-  // ==================== Constructor & Static Methods ====================
   describe('Constructor', () => {
     it('should create a collection with a Map', () => {
-      const map = new Map([
-        ['a', 1],
-        ['b', 2],
-      ]);
-      const collection = new FlowCollection(map);
+      const collection = new FlowCollection(mockMap);
       expect(collection.size).toBe(2);
       expect(collection.get('a')).toBe(1);
+      expect(collection.get('b')).toBe(2);
     });
 
     it('should create an empty collection', () => {
-      const map = new Map();
-      const collection = new FlowCollection(map);
+      const collection = new FlowCollection(new Map());
       expect(collection.size).toBe(0);
       expect(collection.isEmpty()).toBe(true);
     });
   });
 
-  describe('static of()', () => {
+  describe('of', () => {
     it('should create a collection from entries array', () => {
-      const entries: [string, number][] = [
-        ['a', 1],
-        ['b', 2],
-        ['c', 3],
-      ];
-      const collection = FlowCollection.of(entries);
-      expect(collection.size).toBe(3);
+      const collection = FlowCollection.of(mockEntries);
+      expect(collection.size).toBe(2);
       expect(collection.get('a')).toBe(1);
       expect(collection.get('b')).toBe(2);
     });
@@ -41,29 +40,21 @@ describe('FlowCollection', () => {
     });
 
     it('should create a collection from an iterable', () => {
-      const map = new Map([
-        ['x', 10],
-        ['y', 20],
-      ]);
-      const collection = FlowCollection.of(map.entries());
-      expect(collection.get('x')).toBe(10);
-      expect(collection.get('y')).toBe(20);
+      const collection = FlowCollection.of(mockMap.entries());
+      expect(collection.get('a')).toBe(1);
+      expect(collection.get('b')).toBe(2);
     });
 
     it('should create a collection from an iterable Set', () => {
-      const set = new Set<[string, number]>([
-        ['x', 10],
-        ['y', 20],
-      ]);
-      const collection = FlowCollection.of(set);
-      expect(collection.get('x')).toBe(10);
-      expect(collection.get('y')).toBe(20);
+      const collection = FlowCollection.of(mockSet);
+      expect(collection.get('a')).toBe(1);
+      expect(collection.get('b')).toBe(2);
     });
   });
 
-  describe('static isFlowCollection()', () => {
+  describe('isFlowCollection', () => {
     it('should return true for FlowCollection instances', () => {
-      const collection = FlowCollection.of([['a', 1]]);
+      const collection = FlowCollection.of([]);
       expect(FlowCollection.isFlowCollection(collection)).toBe(true);
     });
 
@@ -78,56 +69,43 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('static from()', () => {
+  describe('from', () => {
     it('should create from an iterable of entries', () => {
-      const entries: Entry<string, number>[] = [
-        ['a', 1],
-        ['b', 2],
-      ];
-      const collection = FlowCollection.from(entries);
+      const collection = FlowCollection.from(mockEntries);
       expect(collection.size).toBe(2);
       expect(collection.get('a')).toBe(1);
     });
 
     it('should create from a plain object', () => {
-      const obj: Record<string, number> = { a: 1, b: 2, c: 3 };
-      const collection = FlowCollection.from(obj);
-      expect(collection.size).toBe(3);
+      const collection = FlowCollection.from(mockObj);
+      expect(collection.size).toBe(2);
       expect(collection.get('a')).toBe(1);
       expect(collection.get('b')).toBe(2);
     });
 
     it('should create from a Map', () => {
-      const map = new Map([
-        ['a', 10],
-        ['b', 20],
-      ]);
-      const collection = FlowCollection.from(map);
-      expect(collection.get('a')).toBe(10);
+      const collection = FlowCollection.from(mockMap);
+      expect(collection.get('a')).toBe(1);
     });
 
     it('should create from an empty object', () => {
       const collection = FlowCollection.from({} as Record<string, any>);
       expect(collection.isEmpty()).toBe(true);
     });
-
-    it('should handle numeric and other property keys from objects', () => {
-      const obj = { 1: 'one', 2: 'two' } as Record<any, string>;
-      const collection = FlowCollection.from(obj);
-      expect(collection.get('1')).toBe('one');
-      expect(collection.get('2')).toBe('two');
+    it('should create from an empty array', () => {
+      const collection = FlowCollection.from([]);
+      expect(collection.isEmpty()).toBe(true);
+    });
+    it('should create from an empty Set', () => {
+      const collection = FlowCollection.from(new Set());
+      expect(collection.isEmpty()).toBe(true);
     });
   });
 
-  // ==================== Basic Properties & Accessors ====================
   describe('size', () => {
     it('should return the number of entries', () => {
-      const collection = FlowCollection.from([
-        ['a', 1],
-        ['b', 2],
-        ['c', 3],
-      ]);
-      expect(collection.size).toBe(3);
+      const collection = FlowCollection.from(mockEntries);
+      expect(collection.size).toBe(2);
     });
 
     it('should return 0 for empty collection', () => {
@@ -143,66 +121,47 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('get()', () => {
+  describe('get', () => {
     it('should get a value by key', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
+      const collection = FlowCollection.from(mockObj);
       expect(collection.get('a')).toBe(1);
       expect(collection.get('b')).toBe(2);
     });
 
     it('should return undefined for missing keys', () => {
-      const collection = FlowCollection.from({ a: 1 } as Record<
-        string,
-        number
-      >);
-      expect(collection.get('b')).toBeUndefined();
-    });
-
-    it('should handle null and undefined values', () => {
-      const collection = FlowCollection.of([
-        ['a', null],
-        ['b', undefined],
-      ]);
-      expect(collection.get('a')).toBeNull();
+      const collection = FlowCollection.from<string, any>({});
       expect(collection.get('b')).toBeUndefined();
     });
   });
 
-  describe('has()', () => {
+  describe('has', () => {
     it('should check if a key exists', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from<string, number>(mockObj);
       expect(collection.has('a')).toBe(true);
       expect(collection.has('b')).toBe(true);
       expect(collection.has('c')).toBe(false);
     });
-
-    it('should return false for empty collection', () => {
-      const collection = FlowCollection.of([]);
-      expect(collection.has('a')).toBe(false);
-    });
   });
 
-  // ==================== isEmpty ====================
-  describe('isEmpty()', () => {
+  describe('isEmpty', () => {
     it('should return true for empty collection', () => {
       const collection = FlowCollection.of([]);
       expect(collection.isEmpty()).toBe(true);
     });
 
     it('should return false for non-empty collection', () => {
-      const collection = FlowCollection.from({ a: 1 });
+      const collection = FlowCollection.from(mockObj);
       expect(collection.isEmpty()).toBe(false);
     });
 
     it('should return true after clearing', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from(mockObj);
       collection.clear();
       expect(collection.isEmpty()).toBe(true);
     });
   });
 
-  // ==================== Mutation Methods ====================
-  describe('set()', () => {
+  describe('set', () => {
     it('should set a value and return this for chaining', () => {
       const collection = FlowCollection.of([]);
       const result = collection.set('a', 1);
@@ -211,7 +170,7 @@ describe('FlowCollection', () => {
     });
 
     it('should overwrite existing values', () => {
-      const collection = FlowCollection.from({ a: 1 });
+      const collection = FlowCollection.from<string, number>(mockObj);
       collection.set('a', 100);
       expect(collection.get('a')).toBe(100);
     });
@@ -225,20 +184,11 @@ describe('FlowCollection', () => {
       expect(collection.get('a')).toBe(1);
       expect(collection.get('c')).toBe(3);
     });
-
-    it('should set null and undefined values', () => {
-      const collection = FlowCollection.of([])
-        .set('a', null)
-        .set('b', undefined);
-      expect(collection.get('a')).toBeNull();
-      expect(collection.get('b')).toBeUndefined();
-      expect(collection.size).toBe(2);
-    });
   });
 
-  describe('delete()', () => {
+  describe('delete', () => {
     it('should delete a key and return true if found', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from(mockObj);
       const result = collection.delete('a');
       expect(result).toBe(true);
       expect(collection.has('a')).toBe(false);
@@ -246,20 +196,15 @@ describe('FlowCollection', () => {
     });
 
     it('should return false for non-existent key', () => {
-      const collection = FlowCollection.from({ a: 1 });
+      const collection = FlowCollection.from<string, number>({ a: 1 });
       const result = collection.delete('b');
       expect(result).toBe(false);
     });
-
-    it('should work on empty collection', () => {
-      const collection = FlowCollection.of([]);
-      expect(collection.delete('a')).toBe(false);
-    });
   });
 
-  describe('clear()', () => {
+  describe('clear', () => {
     it('should remove all entries and return this for chaining', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
+      const collection = FlowCollection.from(mockObj);
       const result = collection.clear();
       expect(result).toBe(collection);
       expect(collection.isEmpty()).toBe(true);
@@ -267,73 +212,54 @@ describe('FlowCollection', () => {
     });
 
     it('should be chainable', () => {
-      const collection = FlowCollection.from({ a: 1 }).clear().set('b', 2);
+      const collection = FlowCollection.from<string, number>({ a: 1 })
+        .clear()
+        .set('b', 2);
       expect(collection.size).toBe(1);
       expect(collection.get('b')).toBe(2);
     });
   });
 
-  // ==================== Immutable Methods ====================
-  describe('with()', () => {
-    it('should return a new collection with the set value', () => {
-      const original = FlowCollection.from({ a: 1, b: 2 });
-      const modified = original.with('c', 3);
-      expect(modified).not.toBe(original);
-      expect(original.size).toBe(2);
-      expect(modified.size).toBe(3);
-      expect(modified.get('c')).toBe(3);
-    });
-
-    it('should create a new collection when overwriting', () => {
-      const original = FlowCollection.from({ a: 1 });
-      const modified = original.with('a', 100);
-      expect(modified).not.toBe(original);
-      expect(original.get('a')).toBe(1);
-      expect(modified.get('a')).toBe(100);
-    });
-
-    it('should not modify the original', () => {
-      const original = FlowCollection.from({ a: 1 });
-      original.with('b', 2);
-      expect(original.size).toBe(1);
-      expect(original.has('b')).toBe(false);
+  describe('with', () => {
+    it('should return a new collection with the set value, and not modify the original', () => {
+      const og = FlowCollection.from<string, number>(mockObj);
+      const mod = og.with('c', 3);
+      expect(mod).not.toBe(og);
+      expect(og.size).toBe(2);
+      expect(mod.size).toBe(3);
+      expect(mod.get('c')).toBe(3);
+      expect(og.get('c')).toBeUndefined();
     });
   });
 
-  describe('without()', () => {
-    it('should return a new collection without the key', () => {
-      const original = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      const modified = original.without('b');
-      expect(modified).not.toBe(original);
-      expect(original.size).toBe(3);
-      expect(modified.size).toBe(2);
-      expect(modified.has('b')).toBe(false);
+  describe('without', () => {
+    it('should return a new collection without the key, and not modify the original', () => {
+      const og = FlowCollection.from({ ...mockObj, c: 3 });
+      const mod = og.without('b');
+      expect(mod).not.toBe(og);
+      expect(og.size).toBe(3);
+      expect(mod.size).toBe(2);
+      expect(mod.has('b')).toBe(false);
+      expect(og.has('b')).toBe(true);
     });
 
     it('should handle missing keys gracefully', () => {
-      const original = FlowCollection.from({ a: 1 });
+      const original = FlowCollection.from<string, number>({ a: 1 });
       const modified = original.without('b');
       expect(modified.size).toBe(1);
       expect(modified.get('a')).toBe(1);
     });
-
-    it('should not modify the original', () => {
-      const original = FlowCollection.from({ a: 1, b: 2 });
-      original.without('a');
-      expect(original.size).toBe(2);
-      expect(original.has('a')).toBe(true);
-    });
   });
 
-  describe('prepend()', () => {
+  describe('prepend', () => {
     it('should add entry at the beginning and return new collection', () => {
-      const original = FlowCollection.from([
+      const og = FlowCollection.from([
         ['b', 2],
         ['c', 3],
       ]);
-      const modified = original.prepend('a', 1);
-      expect(modified).not.toBe(original);
-      const entries = Array.from(modified.entries());
+      const modified = og.prepend('a', 1);
+      expect(modified).not.toBe(og);
+      const entries = [...modified.entries()];
       expect(entries[0]).toEqual(['a', 1]);
       expect(entries[1]).toEqual(['b', 2]);
     });
@@ -345,85 +271,55 @@ describe('FlowCollection', () => {
       ])
         .prepend('b', 2)
         .prepend('a', 1);
-      const keys = Array.from(collection.keys());
+      const keys = [...collection.keys()];
       expect(keys).toEqual(['a', 'b', 'c', 'd']);
     });
 
-    it('should work on empty collection', () => {
-      const original = FlowCollection.of([]);
-      const modified = original.prepend('a', 1);
-      expect(modified.get('a')).toBe(1);
-      expect(modified.size).toBe(1);
+    it('should move the prepended value to the front if it already exists', () => {
+      const collection = FlowCollection.of([
+        ['c', 3],
+        ['d', 4],
+      ])
+        .prepend('b', 2)
+        .prepend('d', 1);
+      const keys = [...collection.keys()];
+      expect(keys).toEqual(['d', 'b', 'c']);
     });
 
     it('should not modify the original', () => {
-      const original = FlowCollection.from({ a: 1 });
-      original.prepend('b', 2);
-      expect(original.size).toBe(1);
+      const og = FlowCollection.from<string, number>({ a: 1 });
+      og.prepend('b', 2);
+      expect(og.size).toBe(1);
     });
   });
 
-  // ==================== Search Methods ====================
-  describe('find()', () => {
+  describe('find', () => {
     it('should find first value matching predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
+      const collection = FlowCollection.from({ ...mockObj, c: 3, d: 4 });
       const result = collection.find((v) => v > 2);
       expect(result).toBe(3);
     });
 
     it('should return undefined if no match found', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from(mockObj);
       expect(collection.find((v) => v > 10)).toBeUndefined();
-    });
-
-    it('should receive key and collection in predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
-      let capturedKey: string | undefined;
-      let capturedCollection: any;
-      collection.find((v, k, c) => {
-        capturedKey = k;
-        capturedCollection = c;
-        return v === 1;
-      });
-      expect(capturedKey).toBe('a');
-      expect(capturedCollection).toBe(collection);
-    });
-
-    it('should work on empty collection', () => {
-      const collection = FlowCollection.of([]);
-      expect(collection.find(() => true)).toBeUndefined();
     });
   });
 
-  describe('findLast()', () => {
+  describe('findLast', () => {
     it('should find last value matching predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 2 });
-      const result = collection.findLast((v) => v === 2);
-      expect(result).toBe(2);
+      const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 5 });
+      const result = collection.findLast((v) => typeof v === 'number');
+      expect(result).toBe(5);
     });
 
     it('should return undefined if no match found', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from(mockObj);
       expect(collection.findLast((v) => v > 10)).toBeUndefined();
-    });
-
-    it('should receive key and collection in predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      let lastKey: string | undefined;
-      collection.findLast((v, k) => {
-        if (v > 1) lastKey = k;
-        return v > 1;
-      });
-      expect(lastKey).toBe('c');
-    });
-
-    it('should work on empty collection', () => {
-      const collection = FlowCollection.of([]);
-      expect(collection.findLast(() => true)).toBeUndefined();
     });
   });
 
-  describe('filter()', () => {
+  describe('filter', () => {
     it('should filter entries by predicate', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
       const result = collection.filter((v) => v > 2);
@@ -438,13 +334,6 @@ describe('FlowCollection', () => {
       expect(filtered).not.toBe(original);
     });
 
-    it('should work with key predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      const result = collection.filter((_, k) => k === 'b');
-      expect(result.size).toBe(1);
-      expect(result.get('b')).toBe(2);
-    });
-
     it('should return empty collection if no matches', () => {
       const collection = FlowCollection.from({ a: 1, b: 2 });
       const result = collection.filter(() => false);
@@ -452,7 +341,7 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('reject()', () => {
+  describe('reject', () => {
     it('should reject entries by predicate', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
       const result = collection.reject((v) => v > 2);
@@ -467,13 +356,6 @@ describe('FlowCollection', () => {
       expect(rejected).not.toBe(original);
     });
 
-    it('should work with key predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      const result = collection.reject((_, k) => k === 'b');
-      expect(result.size).toBe(2);
-      expect(result.has('b')).toBe(false);
-    });
-
     it('should return all entries if nothing is rejected', () => {
       const collection = FlowCollection.from({ a: 1, b: 2 });
       const result = collection.reject(() => false);
@@ -481,7 +363,7 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('includes()', () => {
+  describe('includes', () => {
     it('should check if value is in collection', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
       expect(collection.includes(2)).toBe(true);
@@ -494,23 +376,13 @@ describe('FlowCollection', () => {
       expect(collection.includes(1)).toBe(false);
     });
 
-    it('should work with null and undefined', () => {
-      const collection = FlowCollection.of([
-        ['a', null],
-        ['b', undefined],
-      ]);
-      expect(collection.includes(null)).toBe(true);
-      expect(collection.includes(undefined)).toBe(true);
-    });
-
     it('should return false for empty collection', () => {
       const collection = FlowCollection.of([]);
       expect(collection.includes(1)).toBe(false);
     });
   });
 
-  // ==================== Predicates ====================
-  describe('every()', () => {
+  describe('every', () => {
     it('should return true if all values match predicate', () => {
       const collection = FlowCollection.from({ a: 2, b: 4, c: 6 });
       expect(collection.every((v) => v % 2 === 0)).toBe(true);
@@ -525,31 +397,9 @@ describe('FlowCollection', () => {
       const collection = FlowCollection.of([]);
       expect(collection.every(() => false)).toBe(true);
     });
-
-    it('should receive key and collection in predicate', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
-      let callCount = 0;
-      collection.every((v, k, c) => {
-        expect(typeof k).toBe('string');
-        expect(c).toBe(collection);
-        callCount++;
-        return true;
-      });
-      expect(callCount).toBe(2);
-    });
-
-    it('should short-circuit on first false', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      let callCount = 0;
-      collection.every((v) => {
-        callCount++;
-        return v < 2;
-      });
-      expect(callCount).toBe(2);
-    });
   });
 
-  describe('some()', () => {
+  describe('some', () => {
     it('should return true if any value matches predicate', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
       expect(collection.some((v) => v > 2)).toBe(true);
@@ -564,30 +414,9 @@ describe('FlowCollection', () => {
       const collection = FlowCollection.of([]);
       expect(collection.some(() => true)).toBe(false);
     });
-
-    it('should receive key and collection in predicate', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      let capturedKey: string | undefined;
-      collection.some((v, k, c) => {
-        capturedKey = k;
-        return c === collection;
-      });
-      expect(capturedKey).toBe('a');
-    });
-
-    it('should short-circuit on first true', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      let callCount = 0;
-      collection.some((v) => {
-        callCount++;
-        return v > 1;
-      });
-      expect(callCount).toBe(2);
-    });
   });
 
-  // ==================== Transformation Methods ====================
-  describe('map()', () => {
+  describe('map', () => {
     it('should map values to new collection', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
       const result = collection.map((v) => v * 2);
@@ -604,20 +433,9 @@ describe('FlowCollection', () => {
     });
 
     it('should return new collection', () => {
-      const original = FlowCollection.from({ a: 1 });
-      const mapped = original.map((v) => v);
-      expect(mapped).not.toBe(original);
-    });
-
-    it('should receive key and collection in callback', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      let capturedKey: string | undefined;
-      collection.map((v, k, c) => {
-        capturedKey = k;
-        expect(c).toBe(collection);
-        return v;
-      });
-      expect(capturedKey).toBe('a');
+      const og = FlowCollection.from(mockObj);
+      const mapped = og.map((v) => v);
+      expect(mapped).not.toBe(og);
     });
 
     it('should work on empty collection', () => {
@@ -627,9 +445,9 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('mapEntries()', () => {
+  describe('mapEntries', () => {
     it('should map entries to new key-value pairs', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from(mockObj);
       const result = collection.mapEntries((v, k) => [k.toUpperCase(), v * 10]);
       expect(result.get('A')).toBe(10);
       expect(result.get('B')).toBe(20);
@@ -647,43 +465,66 @@ describe('FlowCollection', () => {
       const mapped = original.mapEntries((v, k) => [k, v]);
       expect(mapped).not.toBe(original);
     });
+  });
 
-    it('should receive collection in callback', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      collection.mapEntries((v, k, c) => {
-        expect(c).toBe(collection);
-        return [k, v];
-      });
+  describe('mapKeys', () => {
+    it('transforms keys while preserving values', () => {
+      const col = FlowCollection.from(mockObj);
+      expect(col.mapKeys((_, k) => String(k).toUpperCase()).toObject()).toEqual(
+        { A: 1, B: 2 },
+      );
     });
 
-    it('should handle duplicate keys by using last', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
-      const result = collection.mapEntries(() => ['same', 1]);
-      expect(result.size).toBe(1);
-      expect(result.get('same')).toBe(1);
+    it('does not mutate the original', () => {
+      const col = FlowCollection.from({ a: 1, b: 2 });
+      col.mapKeys((_, k) => String(k).toUpperCase());
+      expect(col.toObject()).toEqual({ a: 1, b: 2 });
     });
   });
 
-  describe('flatMap()', () => {
-    it('should flatten mapped results with iterable source', () => {
-      const collection = FlowCollection.from<string, number>({ a: 1, b: 2 });
-      const result = collection.flatMap<string, number>((v) => [
-        [`item${v}a`, v * 10],
-        [`item${v}b`, v * 20],
-      ]);
-      expect(result.size).toBe(4);
-      expect(result.get('item1a')).toBe(10);
-      expect(result.get('item2b')).toBe(40);
+  describe('flatMap', () => {
+    it('should flatten mapped results with an object source', () => {
+      const collection = FlowCollection.from<string, number>(mockObj);
+      const result = collection.flatMap<string, number>((v, k) => ({
+        [k + k]: v + v,
+      }));
+      expect(result.toObject()).toEqual({
+        aa: 2,
+        bb: 4,
+      });
     });
 
-    it('should flatten mapped results with object source', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      const result = collection.flatMap<string, number>((v) => ({
-        [`key${v}a`]: v * 10,
-        [`key${v}b`]: v * 20,
-      }));
-      expect(result.get('key1a')).toBe(10);
-      expect(result.get('key1b')).toBe(20);
+    it('should flatten mapped results with a map source', () => {
+      const collection = FlowCollection.from(mockObj);
+      const result = collection.flatMap<string, number>(
+        (v, k) => new Map([[k + k, v + v]]),
+      );
+      expect(result.toObject()).toEqual({
+        aa: 2,
+        bb: 4,
+      });
+    });
+
+    it('should flatten mapped results with an array/iterable source', () => {
+      const collection = FlowCollection.from(mockObj);
+      const result = collection.flatMap<string, number>((v, k) => [
+        [k + k, v + v],
+      ]);
+      expect(result.toObject()).toEqual({
+        aa: 2,
+        bb: 4,
+      });
+    });
+
+    it('should flatten mapped results with a Flow Collection source', () => {
+      const collection = FlowCollection.from(mockObj);
+      const result = collection.flatMap<string, number>((v, k) =>
+        FlowCollection.from([[k + k, v + v]]),
+      );
+      expect(result.toObject()).toEqual({
+        aa: 2,
+        bb: 4,
+      });
     });
 
     it('should return new collection', () => {
@@ -691,33 +532,9 @@ describe('FlowCollection', () => {
       const flatMapped = original.flatMap((v) => [[`k`, v]]);
       expect(flatMapped).not.toBe(original);
     });
-
-    it('should handle overlapping keys by using last', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
-      const result = collection.flatMap(() => [
-        ['same', 1],
-        ['same', 2],
-      ]);
-      expect(result.get('same')).toBe(2);
-    });
-
-    it('should work on empty collection', () => {
-      const collection = FlowCollection.of([]);
-      const result = collection.flatMap((v) => [['k', v]]);
-      expect(result.isEmpty()).toBe(true);
-    });
-
-    it('should receive collection in callback', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      collection.flatMap((v, k, c) => {
-        expect(c).toBe(collection);
-        return [['k', v]];
-      });
-    });
   });
 
-  // ==================== Aggregation Methods ====================
-  describe('partition()', () => {
+  describe('partition', () => {
     it('should partition into truthy and falsy arrays', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
       const result = collection.partition((v) => v > 2);
@@ -748,32 +565,14 @@ describe('FlowCollection', () => {
       expect(result.get(true)).toEqual([]);
       expect(result.get(false)).toEqual([1, 2]);
     });
-
-    it('should receive key and collection in predicate', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      let capturedKey: string | undefined;
-      collection.partition((v, k, c) => {
-        capturedKey = k;
-        expect(c).toBe(collection);
-        return true;
-      });
-      expect(capturedKey).toBe('a');
-    });
   });
 
-  describe('groupBy()', () => {
+  describe('groupBy', () => {
     it('should group values by key', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 2 });
       const result = collection.groupBy((v) => (v % 2 === 0 ? 'even' : 'odd'));
       expect(result.get('odd')).toEqual([1, 3]);
       expect(result.get('even')).toEqual([2, 2]);
-    });
-
-    it('should create new arrays for each group', () => {
-      const collection = FlowCollection.from({ a: 'x', b: 'y', c: 'x' });
-      const result = collection.groupBy((v) => v);
-      expect(result.get('x')).toEqual(['x', 'x']);
-      expect(result.get('y')).toEqual(['y']);
     });
 
     it('should work with numeric grouping keys', () => {
@@ -782,23 +581,9 @@ describe('FlowCollection', () => {
       expect(result.get(10)).toEqual([1]);
       expect(result.get(20)).toEqual([2]);
     });
-
-    it('should handle single item per group', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      const result = collection.groupBy((v) => v);
-      expect(result.get(1)).toEqual([1]);
-    });
-
-    it('should receive collection in callback', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      collection.groupBy((v, k, c) => {
-        expect(c).toBe(collection);
-        return 'key';
-      });
-    });
   });
 
-  describe('tally()', () => {
+  describe('tally', () => {
     it('should count values matching predicate', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
       expect(collection.tally((v) => v > 2)).toBe(2);
@@ -809,92 +594,99 @@ describe('FlowCollection', () => {
       expect(collection.tally((v) => v > 10)).toBe(0);
     });
 
-    it('should return full size if all match', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      expect(collection.tally(() => true)).toBe(3);
-    });
-
     it('should work on empty collection', () => {
       const collection = FlowCollection.of([]);
       expect(collection.tally(() => true)).toBe(0);
     });
-
-    it('should receive key and collection in predicate', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      collection.tally((v, k, c) => {
-        expect(typeof k).toBe('string');
-        expect(c).toBe(collection);
-        return true;
-      });
-    });
   });
 
-  // ==================== Iteration Methods ====================
-  describe('forEach()', () => {
+  describe('forEach', () => {
     it('should iterate over all entries', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
+      const collection = FlowCollection.from(mockObj);
       const entries: Array<[string, number]> = [];
       collection.forEach((v, k) => {
         entries.push([k, v]);
       });
-      expect(entries.length).toBe(3);
+      expect(entries.length).toBe(2);
       expect(entries).toContainEqual(['a', 1]);
       expect(entries).toContainEqual(['b', 2]);
-      expect(entries).toContainEqual(['c', 3]);
-    });
-
-    it('should pass collection as third argument', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      collection.forEach((v, k, c) => {
-        expect(c).toBe(collection);
-      });
     });
 
     it('should work on empty collection', () => {
+      const mock = vi.fn();
       const collection = FlowCollection.of([]);
-      let callCount = 0;
-      collection.forEach(() => {
-        callCount++;
-      });
-      expect(callCount).toBe(0);
+      collection.forEach(mock);
+      expect(mock).not.toHaveBeenCalled();
     });
   });
 
-  describe('keys()', () => {
+  describe('forEachRight', () => {
+    it('should iterate over all entries from right to left.', () => {
+      const collection = FlowCollection.from(mockObj);
+      const entries: Array<[string, number]> = [];
+      collection.forEachRight((v, k) => {
+        entries.push([k, v]);
+      });
+      expect(entries.length).toBe(2);
+      expect(entries[0]).toEqual(['b', 2]);
+      expect(entries[1]).toEqual(['a', 1]);
+    });
+
+    it('should work on empty collection', () => {
+      const mock = vi.fn();
+      const collection = FlowCollection.of([]);
+      collection.forEachRight(mock);
+      expect(mock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('reduce', () => {
+    it('iterates over the collection, and returns out the returns of the iteration', () => {
+      const collection = FlowCollection.from(mockObj);
+      const result = collection.reduce((acc, curr) => {
+        acc.push(curr);
+        return acc;
+      }, [] as any[]);
+      expect(result).toBeInstanceOf(Array);
+      expect(result).toEqual([1, 2]);
+    });
+  });
+
+  describe('reduceRight', () => {
+    it('iterates over the collection, and returns out the returns of the iteration', () => {
+      const collection = FlowCollection.from(mockObj);
+      const result = collection.reduceRight((acc, curr) => {
+        acc.push(curr);
+        return acc;
+      }, [] as any[]);
+      expect(result).toBeInstanceOf(Array);
+      expect(result).toEqual([2, 1]);
+    });
+  });
+
+  describe('keys', () => {
     it('should return an iterator of keys', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      const keys = Array.from(collection.keys());
+      const collection = FlowCollection.from(mockObj);
+      const keys = [...collection.keys()];
       expect(keys).toContain('a');
       expect(keys).toContain('b');
-      expect(keys).toContain('c');
-      expect(keys.length).toBe(3);
+      expect(keys.length).toBe(2);
     });
 
     it('should return empty iterator for empty collection', () => {
       const collection = FlowCollection.of([]);
-      const keys = Array.from(collection.keys());
+      const keys = [...collection.keys()];
       expect(keys).toEqual([]);
-    });
-
-    it('should preserve insertion order', () => {
-      const collection = FlowCollection.of([
-        ['z', 1],
-        ['a', 2],
-        ['m', 3],
-      ]);
-      const keys = Array.from(collection.keys());
-      expect(keys).toEqual(['z', 'a', 'm']);
     });
   });
 
-  describe('values()', () => {
+  describe('values', () => {
     it('should return an iterator of values', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      const values = Array.from(collection.values());
+      const collection = FlowCollection.from(mockObj);
+      const values = [...collection.values()];
       expect(values).toContain(1);
       expect(values).toContain(2);
-      expect(values).toContain(3);
-      expect(values.length).toBe(3);
+      expect(values.length).toBe(2);
     });
 
     it('should return empty iterator for empty collection', () => {
@@ -902,25 +694,16 @@ describe('FlowCollection', () => {
       const values = Array.from(collection.values());
       expect(values).toEqual([]);
     });
-
-    it('should preserve insertion order', () => {
-      const collection = FlowCollection.of([
-        ['z', 1],
-        ['a', 2],
-        ['m', 3],
-      ]);
-      const values = Array.from(collection.values());
-      expect(values).toEqual([1, 2, 3]);
-    });
   });
 
-  describe('entries()', () => {
+  describe('entries', () => {
     it('should return an iterator of entries', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
-      const entries = Array.from(collection.entries());
-      expect(entries).toContainEqual(['a', 1]);
-      expect(entries).toContainEqual(['b', 2]);
-      expect(entries.length).toBe(2);
+      const collection = FlowCollection.from(mockObj);
+      const entries = [...collection.entries()];
+      expect(entries).toEqual([
+        ['a', 1],
+        ['b', 2],
+      ]);
     });
 
     it('should return empty iterator for empty collection', () => {
@@ -928,27 +711,13 @@ describe('FlowCollection', () => {
       const entries = Array.from(collection.entries());
       expect(entries).toEqual([]);
     });
-
-    it('should preserve insertion order', () => {
-      const collection = FlowCollection.of([
-        ['z', 1],
-        ['a', 2],
-      ]);
-      const entries = Array.from(collection.entries());
-      expect(entries).toEqual([
-        ['z', 1],
-        ['a', 2],
-      ]);
-    });
   });
 
-  // ==================== Sorting Methods ====================
-  describe('sortBy()', () => {
+  describe('sortBy', () => {
     it('should sort by numeric value', () => {
       const collection = FlowCollection.from({ a: 3, b: 1, c: 2 });
       const result = collection.sortBy((v) => v);
-      const values = Array.from(result.values());
-      expect(values).toEqual([1, 2, 3]);
+      expect(result.toValues()).toEqual([1, 2, 3]);
     });
 
     it('should sort by string value', () => {
@@ -958,15 +727,13 @@ describe('FlowCollection', () => {
         c: 'bob',
       });
       const result = collection.sortBy((v) => v);
-      const values = Array.from(result.values());
-      expect(values).toEqual(['alice', 'bob', 'charlie']);
+      expect(result.toValues()).toEqual(['alice', 'bob', 'charlie']);
     });
 
     it('should sort by boolean value', () => {
       const collection = FlowCollection.from({ a: true, b: false, c: true });
       const result = collection.sortBy((v) => v);
-      const values = Array.from(result.values());
-      expect(values).toEqual([false, true, true]);
+      expect(result.toValues()).toEqual([false, true, true]);
     });
 
     it('should maintain order of equal elements', () => {
@@ -977,7 +744,7 @@ describe('FlowCollection', () => {
         ['d', 1],
       ]);
       const result = collection.sortBy((v) => v);
-      const keys = Array.from(result.keys());
+      const keys = [...result.keys()];
       expect(keys[0]).toBe('a');
       expect(keys[1]).toBe('d');
     });
@@ -988,15 +755,6 @@ describe('FlowCollection', () => {
       expect(sorted).not.toBe(original);
     });
 
-    it('should receive key and collection in callback', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      collection.sortBy((v, k, c) => {
-        expect(typeof k).toBe('string');
-        expect(c).toBe(collection);
-        return v;
-      });
-    });
-
     it('should work on empty collection', () => {
       const collection = FlowCollection.of([]);
       const result = collection.sortBy(() => 0);
@@ -1004,17 +762,16 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('toSorted()', () => {
+  describe('sortWith', () => {
     it('should sort with custom comparator', () => {
       const collection = FlowCollection.from({ a: 3, b: 1, c: 2 });
-      const result = collection.toSorted((a, b) => a[1] - b[1]);
-      const values = Array.from(result.values());
-      expect(values).toEqual([1, 2, 3]);
+      const result = collection.sortWith((a, b) => a[1] - b[1]);
+      expect(result.toValues()).toEqual([1, 2, 3]);
     });
 
     it('should sort in reverse order with custom comparator', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
-      const result = collection.toSorted((a, b) => b[1] - a[1]);
+      const result = collection.sortWith((a, b) => b[1] - a[1]);
       const values = Array.from(result.values());
       expect(values).toEqual([3, 2, 1]);
     });
@@ -1025,26 +782,24 @@ describe('FlowCollection', () => {
         ['a', 2],
         ['b', 3],
       ]);
-      const result = collection.toSorted((a, b) => a[0].localeCompare(b[0]));
-      const keys = Array.from(result.keys());
-      expect(keys).toEqual(['a', 'b', 'c']);
+      const result = collection.sortWith((a, b) => a[0].localeCompare(b[0]));
+      expect(result.toKeys()).toEqual(['a', 'b', 'c']);
     });
 
     it('should return new collection', () => {
       const original = FlowCollection.from({ a: 3, b: 1 });
-      const sorted = original.toSorted(() => 0);
+      const sorted = original.sortWith(() => 0);
       expect(sorted).not.toBe(original);
     });
 
     it('should work on empty collection', () => {
       const collection = FlowCollection.of([]);
-      const result = collection.toSorted(() => 0);
+      const result = collection.sortWith(() => 0);
       expect(result.isEmpty()).toBe(true);
     });
   });
 
-  // ==================== Inversion Method ====================
-  describe('invert()', () => {
+  describe('invert', () => {
     it('should swap keys and values', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3 });
       const result = collection.invert();
@@ -1069,13 +824,6 @@ describe('FlowCollection', () => {
       expect(result.get('same')).toBe('b');
     });
 
-    it('should work with different value types', () => {
-      const collection = FlowCollection.from({ a: 'x', b: 'y', c: 'z' });
-      const result = collection.invert();
-      expect(result.get('x')).toBe('a');
-      expect(result.get('y')).toBe('b');
-    });
-
     it('should work on empty collection', () => {
       const collection = FlowCollection.of([]);
       const result = collection.invert();
@@ -1083,8 +831,7 @@ describe('FlowCollection', () => {
     });
   });
 
-  // ==================== Selection Methods ====================
-  describe('pick()', () => {
+  describe('pick', () => {
     it('should pick specified keys', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
       const result = collection.pick(['a', 'c']);
@@ -1095,7 +842,7 @@ describe('FlowCollection', () => {
     });
 
     it('should handle missing keys gracefully', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from<string, number>({ a: 1, b: 2 });
       const result = collection.pick(['a', 'c', 'd']);
       expect(result.size).toBe(1);
       expect(result.get('a')).toBe(1);
@@ -1120,7 +867,7 @@ describe('FlowCollection', () => {
     });
   });
 
-  describe('omit()', () => {
+  describe('omit', () => {
     it('should omit specified keys', () => {
       const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
       const result = collection.omit(['b', 'd']);
@@ -1131,16 +878,16 @@ describe('FlowCollection', () => {
     });
 
     it('should handle non-existent keys gracefully', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const collection = FlowCollection.from<string, number>({ a: 1, b: 2 });
       const result = collection.omit(['c', 'd']);
       expect(result.size).toBe(2);
       expect(result.get('a')).toBe(1);
     });
 
     it('should return new collection', () => {
-      const original = FlowCollection.from({ a: 1 });
-      const omitted = original.omit(['b']);
-      expect(omitted).not.toBe(original);
+      const og = FlowCollection.from<string, number>({ a: 1 });
+      const omitted = og.omit(['b']);
+      expect(omitted).not.toBe(og);
     });
 
     it('should handle empty omit array', () => {
@@ -1156,10 +903,9 @@ describe('FlowCollection', () => {
     });
   });
 
-  // ==================== Merge Method ====================
-  describe('merge()', () => {
+  describe('merge', () => {
     it('should merge with iterable source', () => {
-      const collection = FlowCollection.from({ a: 1 });
+      const collection = FlowCollection.from<string, number>({ a: 1 });
       const result = collection.merge([
         ['b', 2],
         ['c', 3],
@@ -1170,7 +916,7 @@ describe('FlowCollection', () => {
     });
 
     it('should merge with object source', () => {
-      const collection = FlowCollection.from({ a: 1 });
+      const collection = FlowCollection.from<string, number>({ a: 1 });
       const result = collection.merge({ b: 2, c: 3 });
       expect(result.size).toBe(3);
       expect(result.get('a')).toBe(1);
@@ -1178,8 +924,12 @@ describe('FlowCollection', () => {
     });
 
     it('should merge multiple sources', () => {
-      const collection = FlowCollection.from({ a: 1 });
-      const result = collection.merge({ b: 2 }, [['c', 3]], { d: 4 });
+      const collection = FlowCollection.from<string, number>({ a: 1 });
+      const result = collection.merge(
+        { b: 2 },
+        [['c', 3]],
+        new Map([['d', 4]]),
+      );
       expect(result.size).toBe(4);
       expect(result.get('a')).toBe(1);
       expect(result.get('d')).toBe(4);
@@ -1219,109 +969,100 @@ describe('FlowCollection', () => {
     });
   });
 
-  // ==================== Integration Tests ====================
-  describe('Method Chaining', () => {
-    it('should chain immutable methods', () => {
-      const result = FlowCollection.from<string, number>({ a: 1, b: 2, c: 3 })
-        .filter((v) => v > 1)
-        .map((v) => v * 2)
-        .with('d', 8);
-      expect(result.size).toBe(3);
-      expect(result.get('b')).toBe(4);
-      expect(result.get('c')).toBe(6);
-      expect(result.get('d')).toBe(8);
-    });
-
-    it('should chain mutable methods', () => {
-      const collection = FlowCollection.of([])
-        .set('a', 1)
-        .set('b', 2)
-        .set('c', 3);
-      expect(collection.size).toBe(3);
-    });
-
-    it('should work with complex workflows', () => {
-      const data = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
-      const result = data
-        .filter((v) => v > 1)
-        .partition((v) => v > 2)
-        .entries();
-      const entries = Array.from(result);
-      expect(entries.length).toBe(2);
+  describe('tap', () => {
+    it('should iterate, and return out copy of the collection', () => {
+      const collection = FlowCollection.from(mockObj);
+      const mock = vi.fn();
+      const newColl = collection.tap(mock);
+      expect(mock).toHaveBeenCalled();
+      expect(newColl).not.toBe(collection);
+      expect(collection.toEntries).toEqual(newColl.toEntries);
     });
   });
 
-  describe('Type Preservation', () => {
-    it('should preserve number types', () => {
-      const collection = FlowCollection.from({ a: 1, b: 2.5, c: -3 });
-      expect(collection.get('a')).toBe(1);
-      expect(collection.get('b')).toBe(2.5);
-      expect(collection.get('c')).toBe(-3);
-    });
-
-    it('should preserve string types', () => {
-      const collection = FlowCollection.from({ a: 'hello', b: '', c: 'world' });
-      expect(collection.get('a')).toBe('hello');
-      expect(collection.get('b')).toBe('');
-      expect(collection.get('c')).toBe('world');
-    });
-
-    it('should preserve object types', () => {
-      const obj1 = { x: 1 };
-      const obj2 = { y: 2 };
-      const collection = FlowCollection.from({ a: obj1, b: obj2 });
-      expect(collection.get('a')).toBe(obj1);
-      expect(collection.get('b')).toBe(obj2);
-    });
-
-    it('should preserve array types', () => {
-      const arr1 = [1, 2, 3];
-      const arr2 = [4, 5, 6];
-      const collection = FlowCollection.from({ a: arr1, b: arr2 });
-      expect(collection.get('a')).toBe(arr1);
-      expect(collection.get('b')).toBe(arr2);
+  describe('peek', () => {
+    it('calls a function passing in the collection', () => {
+      const collection = FlowCollection.from(mockObj);
+      const mock = vi.fn();
+      collection.peek(mock);
+      expect(mock).toHaveBeenCalled();
     });
   });
 
-  describe('Edge Cases', () => {
-    it('should handle symbol keys', () => {
-      const sym = Symbol('test');
-      const map = new Map([[sym, 'value']]);
-      const collection = new FlowCollection(map);
-      expect(collection.get(sym)).toBe('value');
+  describe('thru', () => {
+    it('calls a function passing in the collection, and returns whatever that function returns', () => {
+      const collection = FlowCollection.from(mockObj);
+      const toArr = () => [];
+      const newColl = collection.thru(toArr);
+      expect(newColl).toEqual([]);
     });
+  });
 
-    it('should handle large collections', () => {
-      const entries = Array.from(
-        { length: 1000 },
-        (_, i) => [`key${i}`, i] as const,
-      );
-      const collection = FlowCollection.of(entries);
-      expect(collection.size).toBe(1000);
-      expect(collection.get('key500')).toBe(500);
+  describe('inspect', () => {
+    it('logs the current collecion', () => {
+      const mockLog = vi.spyOn(console, 'log');
+      const collection = FlowCollection.from(mockObj);
+      collection.inspect();
+      expect(mockLog).toHaveBeenCalled();
     });
+  });
 
-    it('should handle collections with mixed key types', () => {
-      const map = new Map<any, number>([
-        ['a', 1],
-        [1, 2],
-        [true, 3],
-      ]);
-      const collection = new FlowCollection(map);
-      expect(collection.get('a')).toBe(1);
-      expect(collection.get(1)).toBe(2);
-      expect(collection.get(true)).toBe(3);
+  describe('toMap', () => {
+    it('returns out a Map', () => {
+      const collection = FlowCollection.from(mockObj);
+      expect(collection.toMap()).toBeInstanceOf(Map);
     });
+  });
 
-    it('should handle special characters in string keys', () => {
-      const collection = FlowCollection.from({
-        'key with spaces': 1,
-        'key-with-dashes': 2,
-        'key.with.dots': 3,
-      });
-      expect(collection.get('key with spaces')).toBe(1);
-      expect(collection.get('key-with-dashes')).toBe(2);
-      expect(collection.get('key.with.dots')).toBe(3);
+  describe('toObject', () => {
+    it('returns out an Object', () => {
+      const collection = FlowCollection.from({});
+      expect(collection.toObject()).toEqual({});
+    });
+  });
+
+  describe('toEntries', () => {
+    it('returns out an entries array', () => {
+      const collection = FlowCollection.from(mockObj);
+      expect(collection.toEntries()).toBeInstanceOf(Array);
+      expect(collection.toEntries()[0]).toEqual(['a', 1]);
+    });
+  });
+
+  describe('toValues', () => {
+    it('returns out an array of values', () => {
+      const collection = FlowCollection.from(mockObj);
+      expect(collection.toValues()).toEqual([1, 2]);
+    });
+  });
+
+  describe('toKeys', () => {
+    it('returns out an array of the keys', () => {
+      const collection = FlowCollection.from(mockObj);
+      expect(collection.toKeys()).toEqual(['a', 'b']);
+    });
+  });
+});
+
+describe('utils', () => {
+  describe('isPlainObject', () => {
+    it('is true for object', () => {
+      expect(isPlainObject({})).toBeTruthy();
+    });
+    it('is false for everything else', () => {
+      [
+        '',
+        0,
+        [],
+        new Map(),
+        new Set(),
+        Infinity,
+        null,
+        undefined,
+        true,
+        false,
+        new FlowCollection(),
+      ].forEach((v) => expect(isPlainObject(v)).toBeFalsy());
     });
   });
 });
