@@ -19,6 +19,14 @@
     "flowlist",
     "flowcollection"
   ],
+  "homepage": "https://github.com/flow-tools-dev/flow-structures#readme",
+  "bugs": {
+    "url": "https://github.com/flow-tools-dev/flow-structures/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/flow-tools-dev/flow-structures.git"
+  },
   "license": "MIT",
   "author": "Adam Allison",
   "type": "module",
