@@ -1,11 +1,30 @@
 {
   "name": "@flow-tools-dev/flow-structures",
   "version": "1.0.0",
-  "description": "Array and Object utility tools",
+  "description": "Chainable, immutable array and map/object utilities for TypeScript.",
+  "keywords": [
+    "lodash",
+    "ramda",
+    "highland",
+    "functional programming",
+    "fp",
+    "chainable",
+    "immutable",
+    "array",
+    "map",
+    "object",
+    "collection",
+    "utilities",
+    "typescript",
+    "flowlist",
+    "flowcollection"
+  ],
   "license": "MIT",
   "author": "Adam Allison",
   "type": "module",
-  "main": "index.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "files": [
     "dist",
     "README.md",
@@ -13,8 +32,14 @@
   ],
   "exports": {
     ".": {
-      "import": "./dist/index.mjs",
-      "types": "./dist/index.d.ts"
+      "import": {
+        "types": "./dist/index.d.mts",
+        "default": "./dist/index.mjs"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     }
   },
   "scripts": {

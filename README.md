@@ -16,7 +16,7 @@ Heavily inspired by the utility of Lodash, the functional elegance of Ramda, and
 
 # The Big Idea
 
-Lodash is great. Ramda is great. Highland, also great. But the goal of Flow Structures is to make an approachable, easy to understand, hybrid FP lodash data structure that naturally extends what's already built into Javascript today.
+Lodash is great. Ramda is great. Highland, also great. But the goal of Flow Structures is to make an approachable, chainable, easy to understand, hybrid FP lodash data structure library that naturally extends what's already built into Javascript today.
 
 What if `prepend`, `groupBy`, `sortBy`, `partition`, `zip`, `flatMap`, `chunk`, `difference`, `intersection`, `uniq`, `merge` — all of it — just lived on the thing you're already working with? Chainable. Immutable. Typed. No wrappers, no imports, no ceremony.
 
@@ -197,6 +197,8 @@ list.toIndex(2); // FlowList with only the element at index 2
 A chainable, immutable Map wrapper made to bridge the gap between how native Objects/Maps behave, and all the stuff you actually want to do with them. Same energy as FlowList, but for key-value data.
 
 If you've ever found yourself writing `Object.fromEntries(Object.entries(obj).filter(...).map(...))` and wishing it could just... chain — this is for you.
+
+It's important to note that FlowCollection treats any key/value data structure as generally the same entity. So when you're trying to merge, flat map, etc, you can return entry arrays, objects, maps, collections, and all of them are accepted by FlowCollection as a general key value structure, and get treated the same.
 
 ## Basic Usage
 
