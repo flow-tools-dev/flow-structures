@@ -198,7 +198,7 @@ A chainable, immutable Map wrapper made to bridge the gap between how native Obj
 
 If you've ever found yourself writing `Object.fromEntries(Object.entries(obj).filter(...).map(...))` and wishing it could just... chain — this is for you.
 
-It's important to note that FlowCollection treats any key/value data structure as generally the same entity. So when you're trying to merge, flat map, etc, you can return entry arrays, objects, maps, collections, and all of them are accepted by FlowCollection as a general key value structure, and get treated the same.
+It's important to note that FlowCollection treats any key/value data structure as generally the same entity. So when merging, flat mapping, or building new collections, you can pass plain objects or any iterable of `[key, value]` pairs — arrays of entries, Maps, other FlowCollections — and they're all accepted and handled the same way.
 
 ## Basic Usage
 
