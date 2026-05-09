@@ -654,7 +654,7 @@ export class FlowList<T> {
     const agg: T[][] = [];
     let chunk: T[] = [];
     this.array.forEach((el) => {
-      if (chunk.length < n) chunk.push(el);
+      chunk.push(el);
       if (chunk.length === n) {
         agg.push(chunk);
         chunk = [];

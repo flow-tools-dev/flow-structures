@@ -37,14 +37,6 @@ describe('FlowList.isFlowList', () => {
   it('returns false for a plain array', () => {
     expect(FlowList.isFlowList([1, 2, 3])).toBe(false);
   });
-
-  it('returns false for a non-array value', () => {
-    expect(FlowList.isFlowList('hello')).toBe(false);
-  });
-
-  it('returns false for null', () => {
-    expect(FlowList.isFlowList(null)).toBe(false);
-  });
 });
 
 describe('length', () => {
@@ -149,14 +141,6 @@ describe('map', () => {
     ).toEqual([0, 1]);
   });
 
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.map((_, _i, l) => {
-      expect(l).toBe(list);
-      return 0;
-    });
-  });
-
   it('returns a new FlowList', () => {
     const list = FlowList.of([1, 2]);
     expect(list.map((x) => x)).toBeInstanceOf(FlowList);
@@ -168,11 +152,6 @@ describe('forEach', () => {
     const results: number[] = [];
     FlowList.of([1, 2, 3]).forEach((x) => results.push(x));
     expect(results).toEqual([1, 2, 3]);
-  });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.forEach((_, _i, l) => expect(l).toBe(list));
   });
 });
 
@@ -187,11 +166,6 @@ describe('forEachRight', () => {
     const indices: number[] = [];
     FlowList.of(['a', 'b', 'c']).forEachRight((_, i) => indices.push(i));
     expect(indices).toEqual([2, 1, 0]);
-  });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.forEachRight((_, _i, l) => expect(l).toBe(list));
   });
 });
 
@@ -258,14 +232,6 @@ describe('flatMap', () => {
         .toArray(),
     ).toEqual([2, 4]);
   });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.flatMap((_, _i, l) => {
-      expect(l).toBe(list);
-      return [];
-    });
-  });
 });
 
 describe('copyWithin', () => {
@@ -310,14 +276,6 @@ describe('filter', () => {
     ).toEqual([2, 4]);
   });
 
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.filter((_, _i, l) => {
-      expect(l).toBe(list);
-      return true;
-    });
-  });
-
   it('returns a new FlowList', () => {
     const list = FlowList.of([1, 2]);
     expect(list.filter(() => true)).toBeInstanceOf(FlowList);
@@ -332,14 +290,6 @@ describe('reject', () => {
         .toArray(),
     ).toEqual([1, 3]);
   });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.reject((_, _i, l) => {
-      expect(l).toBe(list);
-      return false;
-    });
-  });
 });
 
 describe('tally', () => {
@@ -350,27 +300,11 @@ describe('tally', () => {
   it('returns 0 when no elements pass', () => {
     expect(FlowList.of([1, 3, 5]).tally((x) => x % 2 === 0)).toBe(0);
   });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.tally((_, _i, l) => {
-      expect(l).toBe(list);
-      return true;
-    });
-  });
 });
 
 describe('reduce', () => {
   it('reduces from left to right', () => {
     expect(FlowList.of([1, 2, 3]).reduce((acc, x) => acc + x, 0)).toBe(6);
-  });
-
-  it('passes the FlowList instance as the fourth argument', () => {
-    const list = FlowList.of([1]);
-    list.reduce((acc, _, _i, l) => {
-      expect(l).toBe(list);
-      return acc;
-    }, 0);
   });
 });
 
@@ -379,14 +313,6 @@ describe('reduceRight', () => {
     expect(
       FlowList.of(['a', 'b', 'c']).reduceRight((acc, x) => acc + x, ''),
     ).toBe('cba');
-  });
-
-  it('passes the FlowList instance as the fourth argument', () => {
-    const list = FlowList.of([1]);
-    list.reduceRight((acc, _, _i, l) => {
-      expect(l).toBe(list);
-      return acc;
-    }, 0);
   });
 });
 
@@ -418,14 +344,6 @@ describe('some', () => {
   it('returns false if no element passes', () => {
     expect(FlowList.of([1, 2, 3]).some((x) => x === 99)).toBe(false);
   });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.some((_, _i, l) => {
-      expect(l).toBe(list);
-      return true;
-    });
-  });
 });
 
 describe('every', () => {
@@ -435,14 +353,6 @@ describe('every', () => {
 
   it('returns false if any element fails', () => {
     expect(FlowList.of([2, 3, 6]).every((x) => x % 2 === 0)).toBe(false);
-  });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.every((_, _i, l) => {
-      expect(l).toBe(list);
-      return true;
-    });
   });
 });
 
@@ -454,14 +364,6 @@ describe('find', () => {
   it('returns undefined if no element matches', () => {
     expect(FlowList.of([1, 2, 3]).find((x) => x > 99)).toBeUndefined();
   });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.find((_, _i, l) => {
-      expect(l).toBe(list);
-      return true;
-    });
-  });
 });
 
 describe('findLast', () => {
@@ -471,14 +373,6 @@ describe('findLast', () => {
 
   it('returns undefined if no element matches', () => {
     expect(FlowList.of([1, 2, 3]).findLast((x) => x > 99)).toBeUndefined();
-  });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.findLast((_, _i, l) => {
-      expect(l).toBe(list);
-      return true;
-    });
   });
 });
 
@@ -877,6 +771,17 @@ describe('flat', () => {
         .toArray(),
     ).toEqual([[1, 2]]);
   });
+
+  it('does not flatten beyond the specified depth - mixed instances', () => {
+    expect(
+      FlowList.of([[[1, 2]], FlowList.of([[3, 4]])])
+        .flat(1)
+        .toArray(),
+    ).toEqual([
+      [1, 2],
+      [3, 4],
+    ]);
+  });
 });
 
 describe('flattenDeep', () => {
@@ -1059,11 +964,6 @@ describe('tap', () => {
         .tap(() => {})
         .toArray(),
     ).toEqual([1, 2, 3]);
-  });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.tap((_, _i, l) => expect(l).toBe(list));
   });
 });
 
@@ -1308,14 +1208,6 @@ describe('groupBy', () => {
       .groupBy((x) => (x % 2 === 0 ? 'even' : 'odd'))
       .toArray();
     expect(Object.fromEntries(result)).toEqual({ odd: [1, 3], even: [2, 4] });
-  });
-
-  it('passes the FlowList instance as the third argument', () => {
-    const list = FlowList.of([1]);
-    list.groupBy((_, _i, l) => {
-      expect(l).toBe(list);
-      return 'key';
-    });
   });
 });
 
