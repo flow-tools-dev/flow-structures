@@ -49,6 +49,16 @@ describe('length', () => {
   });
 });
 
+describe('isEmpty', () => {
+  it('returns true for an empty array', () => {
+    expect(FlowList.of([]).isEmpty()).toBeTruthy();
+  });
+
+  it('returns false otherwise', () => {
+    expect(FlowList.of([1]).isEmpty()).toBeFalsy();
+  });
+});
+
 describe('entries', () => {
   it('returns an iterator of [index, value] pairs', () => {
     expect([...FlowList.of(['a', 'b']).entries()]).toEqual([
