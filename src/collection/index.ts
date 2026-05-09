@@ -187,7 +187,7 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The first matching `[key, value]` tuple, or `undefined` if none is found.
    */
-  findEntry(predicate: CollectionCallback<K, V, boolean>) {
+  findEntry(predicate: CollectionCallback<K, V, boolean>): [K, V] | undefined {
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) return [k, v];
     }
@@ -198,8 +198,10 @@ export class FlowCollection<K, V> {
    * @param predicate - A callback receiving each value, its key, and the collection.
    * @returns The last matching `[key, value]` tuple, or `undefined` if none is found.
    */
-  findLastEntry(predicate: CollectionCallback<K, V, boolean>) {
-    let el;
+  findLastEntry(
+    predicate: CollectionCallback<K, V, boolean>,
+  ): [K, V] | undefined {
+    let el: [K, V] | undefined = undefined;
     for (const [k, v] of this.collection) {
       if (predicate(v, k, this)) el = [k, v];
     }
@@ -588,7 +590,7 @@ export class FlowCollection<K, V> {
    * Invokes `fn` on each entry as a side effect, then returns the same collection.
    * Useful for logging or debugging mid-chain without affecting values.
    * @param fn - A callback receiving each value, its key, and the collection.
-   * @returns A new `FlowCollection` with the original entries.
+   * @returns The original Flow Collection.
    */
   tap(fn: CollectionCallback<K, V, void>) {
     this.collection.forEach((v, k) => fn(v, k, this));

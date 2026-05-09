@@ -55,7 +55,7 @@ export class FlowList<T> {
 
   /**
    * Returns true if the list is empty.
-   * @returns `true` for an empty list, false otherwise
+   * @returns `true` for an empty list, `false` otherwise
    */
   isEmpty() {
     return !this.array.length
