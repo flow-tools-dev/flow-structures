@@ -271,6 +271,21 @@ export class FlowCollection<K, V> {
   }
 
   /**
+   * IMMUTABLE
+   * Counts occurrences of each derived key across the collection's values.
+   * @param fn - A callback receiving each value, its key, and the collection. Returns the group key to tally by.
+   * @returns A `Map` of each derived key to the number of values that produced it.
+   */
+  tallyBy<R>(fn: CollectionCallback<K, V, R>) {
+    const acc = new Map<R, number>();
+    for (const [key, v] of this.collection) {
+      const k = fn(v, key, this);
+      acc.set(k, (acc.get(k) ?? 0) + 1);
+    }
+    return acc;
+  }
+
+  /**
    * Returns `true` if the given value exists anywhere in the collection.
    * @param value - The value to search for.
    * @returns `true` if found, otherwise `false`.
