@@ -10,6 +10,12 @@ export type ListCallback<T, R> = (
   list: FlowList<T>,
 ) => R;
 
+export const isFunction = (fn: unknown): fn is Function => typeof fn === 'function';
+export const resolveIfFn =
+  <T, K>(pOrF: keyof T | ((item: T) => K)) =>
+  (v: T): K =>
+    isFunction(pOrF) ? pOrF(v) : (v[pOrF] as unknown as K);
+
 export class FlowList<T> {
   private array: T[];
   constructor(array: T[]) {
@@ -58,7 +64,7 @@ export class FlowList<T> {
    * @returns `true` for an empty list, `false` otherwise
    */
   isEmpty() {
-    return !this.array.length
+    return !this.array.length;
   }
 
   /**
@@ -565,12 +571,12 @@ export class FlowList<T> {
   dropRightWhile(predicate: ListPredicate<T>) {
     const keep: T[] = [];
     let drop = true;
-    const l = this.array.length - 1;
-    this.array.toReversed().forEach((el, i) => {
-      if (drop && predicate(el, l - i, this)) return;
+
+    for (let i = this.array.length - 1; i >= 0; i--) {
+      if (drop && predicate(this.array[i], i, this)) continue;
       drop = false;
-      keep.push(el);
-    });
+      keep.push(this.array[i]);
+    }
     return FlowList.of<T>(keep.toReversed());
   }
 
@@ -595,10 +601,10 @@ export class FlowList<T> {
    * @param depth - The maximum recursion depth. Defaults to `1`.
    * @returns A new flattened `FlowList`.
    */
-  flat(depth: number = 1) {
-    const result: T[] = [];
+  flat<U = T>(depth: number = 1) {
+    const result: U[] = [];
 
-    const flatten = (items: T[], currentDepth: number) => {
+    const flatten = (items: any[], currentDepth: number) => {
       for (const item of items) {
         const isFlow = FlowList.isFlowList(item);
         if (currentDepth > 0 && (Array.isArray(item) || isFlow)) {
@@ -610,7 +616,7 @@ export class FlowList<T> {
       }
     };
     flatten(this.array, depth);
-    return FlowList.of<T>(result);
+    return FlowList.of<U>(result);
   }
 
   /**
@@ -618,8 +624,8 @@ export class FlowList<T> {
    * Recursively flattens all nested arrays and `FlowList` instances.
    * @returns A fully flattened `FlowList`.
    */
-  flattenDeep() {
-    return this.flat(Infinity);
+  flattenDeep<U = T>() {
+    return this.flat<U>(Infinity);
   }
 
   /**
@@ -692,20 +698,27 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list with duplicates removed based on a property key, preserving first occurrence order.
-   * @param prop - The property key to determine uniqueness by.
-   * @returns A new `FlowList` of elements unique by `prop`.
+   * Returns a new list with duplicates removed based on a property key or
+   * transform function, preserving first occurrence order.
+   * @param pOrF - A property key of `T` to determine uniqueness by, or a
+   * function that derives the comparison value from each element.
+   * @returns A new `FlowList` of elements unique by `pOrF`.
    */
-  uniqBy<K extends keyof T>(prop: K) {
-    const seen = new Set<T[K]>();
-    const arr = this.array.reduce((acc, curr, i) => {
-      if (!seen.has(curr[prop])) {
-        acc.push(curr);
-        seen.add(curr[prop]);
-      }
-      return acc;
-    }, [] as T[]);
-    return FlowList.of<T>(arr);
+  uniqBy<K>(pOrF: keyof T | ((item: T) => K)) {
+    const resolve = resolveIfFn(pOrF);
+    const res = this.array.reduce(
+      (acc, el) => {
+        const { keep, seen } = acc;
+        const result = resolve(el);
+        if (!seen.has(result)) {
+          keep.push(el);
+          seen.add(result);
+        }
+        return acc;
+      },
+      { keep: [] as T[], seen: new Set<K>() },
+    );
+    return FlowList.of<T>(res.keep);
   }
 
   /**
@@ -799,7 +812,7 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
-   * Returns a new list of elements not present in any of the given lists.
+   * Returns a new list of elements not present in any of the passed in lists.
    * @param lists - One or more arrays or `FlowList` instances to exclude.
    * @returns A new `FlowList` containing only elements unique to this list.
    */
@@ -812,16 +825,75 @@ export class FlowList<T> {
 
   /**
    * IMMUTABLE
+   * Returns a new `FlowList` containing only the elements of this list that
+   * are not present in the given lists, where presence is determined by
+   * comparing values derived from a key or transform function rather than
+   * the elements themselves.
+   *
+   * @param pOrF - A property key of `T` to compare by, or a function that
+   * derives the comparison value from each element.
+   * @param lists - One or more arrays or `FlowList` instances to exclude.
+   * @returns A new `FlowList` containing only elements unique to this list.
+   */
+
+  differenceBy<K>(
+    pOrF: keyof T | ((item: T) => K),
+    ...lists: (T[] | FlowList<T>)[]
+  ) {
+    const resolve = resolveIfFn(pOrF);
+    const exclude = FlowList.of(lists)
+      .flatMap((a) => a)
+      .map(resolve)
+      .toSet();
+    return FlowList.of<T>(this.array.filter((el) => !exclude.has(resolve(el))));
+  }
+
+  /**
+   * IMMUTABLE
    * Returns a new list of elements that appear in exactly one of the input lists (symmetric difference).
    * @param lists - One or more arrays or `FlowList` instances to compare against.
    * @returns A new `FlowList` of elements unique to a single list.
    */
   xor(...lists: (T[] | FlowList<T>)[]) {
-    const sets = [this.array, ...lists].map((a) => new Set(a));
-    const result = sets
+    const lov = [this.array, ...lists].map((a) => new Set(a));
+    const result = lov
       .flatMap((s) => [...s])
-      .filter((el) => sets.filter((s) => s.has(el)).length === 1);
+      .filter((el) => lov.filter((s) => s.has(el)).length === 1);
     return FlowList.of<T>(result);
+  }
+
+  /**
+   * IMMUTABLE
+   * Returns a new `FlowList` of elements present in exactly one of this list
+   * and the given lists (the symmetric difference), compared by a key or
+   * transform function. Deduplicates by that value.
+   *
+   * @param pOrF - A property key of `T` to compare by, or a function that
+   * derives the comparison value from each element.
+   * @param lists - One or more arrays or `FlowList` instances to compare against.
+   * @returns A new `FlowList` of unique elements found in only one list.
+   */
+  xorBy<K>(pOrF: keyof T | ((item: T) => K), ...lists: (T[] | FlowList<T>)[]) {
+    const resolve = resolveIfFn(pOrF);
+    const lov = [this.array, ...lists].map((a) => new Set(a.map(resolve)));
+    const res = [this.array, ...lists]
+      .flatMap((a) => (FlowList.isFlowList(a) ? a.toArray() : a))
+      .reduce(
+        (acc, el) => {
+          const { keep, seen } = acc;
+          const evaluated = resolve(el);
+          if (
+            !seen.has(evaluated) &&
+            lov.filter((s) => s.has(evaluated)).length === 1
+          ) {
+            keep.push(el);
+            seen.add(evaluated);
+          }
+          return acc;
+        },
+        { keep: [] as T[], seen: new Set<K>() },
+      );
+    return FlowList.of<T>(res.keep);
   }
 
   /**
@@ -831,9 +903,58 @@ export class FlowList<T> {
    * @returns A new `FlowList` of common elements.
    */
   intersection(...lists: (T[] | FlowList<T>)[]) {
-    return FlowList.of<T>(
-      this.array.filter((v) => lists.every((arr) => arr.includes(v))),
+    const lov = lists.map((l) => new Set(l));
+    const res = this.array.reduce(
+      (acc, el) => {
+        const { keep, seen } = acc;
+        if (!seen.has(el) && lov.every((s) => s.has(el))) {
+          keep.push(el);
+          seen.add(el);
+        }
+        return acc;
+      },
+      {
+        keep: [] as T[],
+        seen: new Set<T>(),
+      },
     );
+    return FlowList.of<T>(res.keep);
+  }
+
+  /**
+   * IMMUTABLE
+   * Returns a new `FlowList` of elements present in all given lists, compared
+   * by a key or transform function. Deduplicates by that value, keeping the
+   * first match from this list.
+   *
+   * @param pOrF - A property key of `T` to compare by, or a function that
+   * derives the comparison value from each element.
+   * @param lists - One or more arrays or `FlowList` instances to intersect with.
+   * @returns A new `FlowList` of unique matches.
+   */
+  intersectionBy<K>(
+    pOrF: keyof T | ((item: T) => K),
+    ...lists: (T[] | FlowList<T>)[]
+  ) {
+    const resolve = resolveIfFn(pOrF);
+    const lov = lists.map((list) => new Set(list.map(resolve)));
+
+    const res = this.array.reduce(
+      (acc, curr) => {
+        const { keep, seen } = acc;
+        const evaluated = resolve(curr);
+        if (!seen.has(evaluated) && lov.every((s) => s.has(evaluated))) {
+          seen.add(evaluated);
+          keep.push(curr);
+        }
+        return acc;
+      },
+      {
+        seen: new Set<K>(),
+        keep: [] as T[],
+      },
+    );
+    return FlowList.of<T>(res.keep);
   }
 
   /**
@@ -843,10 +964,54 @@ export class FlowList<T> {
    * @returns A new `FlowList` of unique elements from all lists.
    */
   union(...lists: (T[] | FlowList<T>)[]) {
-    const allLists = [this.array, ...lists].flatMap((a) =>
-      FlowList.isFlowList(a) ? a.toArray() : a,
-    );
-    return FlowList.of(allLists).uniq();
+    const res = [this.array, ...lists]
+      .flatMap((a) => (FlowList.isFlowList(a) ? a.toArray() : a))
+      .reduce(
+        (acc, el) => {
+          const { keep, seen } = acc;
+          if (!seen.has(el)) {
+            seen.add(el);
+            keep.push(el);
+          }
+          return acc;
+        },
+        { keep: [] as T[], seen: new Set<T>() },
+      );
+    return FlowList.of(res.keep);
+  }
+
+  /**
+   * IMMUTABLE
+   * Returns a new `FlowList` containing the elements of this list combined
+   * with the given lists, with duplicates removed based on a key or
+   * transform function rather than the elements themselves. The first
+   * occurrence of each unique comparison value is kept.
+   *
+   * @param pOrF - A property key of `T` to compare by, or a function that
+   * derives the comparison value from each element.
+   * @param lists - One or more arrays or `FlowList` instances to union with.
+   * @returns A new `FlowList` containing the union of all elements, deduplicated.
+   */
+  unionBy<K>(
+    pOrF: keyof T | ((item: T) => K),
+    ...lists: (T[] | FlowList<T>)[]
+  ) {
+    const resolve = resolveIfFn(pOrF);
+    const res = [this.array, ...lists]
+      .flatMap((a) => (FlowList.isFlowList(a) ? a.toArray() : a))
+      .reduce(
+        (acc, item) => {
+          const { keep, seen } = acc;
+          const result = resolve(item);
+          if (!seen.has(result)) {
+            keep.push(item);
+            seen.add(result);
+          }
+          return acc;
+        },
+        { keep: [] as T[], seen: new Set() as Set<T[keyof T] | K> },
+      );
+    return FlowList.of(res.keep);
   }
 
   /**
@@ -873,7 +1038,6 @@ export class FlowList<T> {
    * @returns A new `FlowList` of element tuples.
    */
   zip<U extends T>(...lists: (FlowList<U> | U[])[]) {
-    // normalize everything to arrays
     const allLists: (U[] | FlowList<U>)[] = [this.array as U[], ...lists];
 
     const maxLen = Math.max(...allLists.map((a) => a.length));
