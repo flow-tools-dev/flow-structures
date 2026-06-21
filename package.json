@@ -1,6 +1,6 @@
 {
   "name": "@flow-tools-dev/flow-structures",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Chainable, immutable array and map/object utilities for TypeScript.",
   "keywords": [
     "lodash",
