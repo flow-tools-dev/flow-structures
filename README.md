@@ -83,7 +83,7 @@ list.reject((x) => x > 2); // [1, 2]
 list.without(2, 4); // [1, 3, 5]
 list.compact(); // removes falsy values
 list.uniq(); // removes duplicates
-list.uniqBy('id'); // removes duplicates by property
+list.uniqBy('id'); // removes duplicates by property or function
 list.chunk(2); // [[1, 2], [3, 4], [5]]
 list.flat(); // flattens 1 level
 list.flattenDeep(); // flattens all levels
@@ -91,6 +91,8 @@ list.toSorted((a, b) => b - a); // [5, 4, 3, 2, 1]
 list.sortBy((x) => x); // sort by derived key
 list.toReversed(); // [5, 4, 3, 2, 1]
 list.with(0, 99); // [99, 2, 3, 4, 5]
+list.fill(0, 1, 3); // mutates in place: [1, 0, 0, 4, 5]
+list.toFilled(0, 1, 3); // immutable version of fill
 ```
 
 ## Slicing & Dicing
@@ -124,7 +126,35 @@ a.difference(b); // [1]
 a.xor(b); // [1, 4] — symmetric difference
 ```
 
-All set operations accept both plain arrays and `FlowList` instances interchangeably.
+All set operations accept both plain arrays and `FlowList` instances interchangeably. See [Set Operations By Key](#set-operations-by-key) below for comparing by a derived key instead of the elements themselves.
+
+## Set Operations By Key
+
+Same operations as above, but compare elements by a derived key — a property name or a transform function — instead of the elements themselves.
+
+```ts
+type Item = { id: number; name: string };
+
+const a = FlowList.of<Item>([
+  { id: 1, name: 'a' },
+  { id: 2, name: 'b' },
+]);
+const b: Item[] = [
+  { id: 2, name: 'x' },
+  { id: 3, name: 'y' },
+];
+
+a.unionBy('id', b); // merges, deduped by id — first occurrence wins
+a.intersectionBy('id', b); // elements whose id exists in every list, deduped by id
+a.differenceBy('id', b); // elements whose id is not present in b — no dedup
+a.xorBy('id', b); // elements whose id appears in exactly one list, deduped by id
+
+// also accepts a transform function instead of a property key:
+a.uniqBy((item) => item.id);
+a.unionBy((item) => item.id, b);
+```
+
+`uniqBy`, `unionBy`, `intersectionBy`, and `xorBy` all deduplicate their results by the resolved key, keeping the first matching element. `differenceBy` does not deduplicate — it preserves any duplicates already present in the source list, since it's a pure filter.
 
 ## Searching & Querying
 
@@ -144,6 +174,9 @@ list.at(-1); // 5
 list.head(); // 1
 list.tail(); // 5
 list.isEmpty(); // false
+list.entries(); // iterator of [index, value] pairs
+list.keys(); // iterator of indices
+list.values(); // iterator of values
 ```
 
 ## Grouping & Splitting
@@ -158,6 +191,22 @@ list.groupBy((x) => (x % 2 === 0 ? 'even' : 'odd'));
 FlowList.of([1, 2, 3]).zip([4, 5, 6]);
 // [[1, 4], [2, 5], [3, 6]]
 ```
+
+## Mutating
+
+A handful of methods mutate in place, mirroring their native array counterparts exactly. Everything else on `FlowList` is immutable.
+
+```ts
+const list = FlowList.of([1, 2, 3]);
+
+list.push(4, 5); // [1, 2, 3, 4, 5] — returns new length
+list.pop(); // [1, 2, 3, 4] — returns removed element
+list.unshift(0); // [0, 1, 2, 3, 4] — returns new length
+list.shift(); // [1, 2, 3, 4] — returns removed element
+list.copyWithin(0, 2); // copies a range over another, in place
+```
+
+Prefer the immutable `toSpliced`, `toCopiedWithin`, and friends if you'd rather not mutate.
 
 ## Chaining Utilities
 
@@ -267,9 +316,23 @@ col.findLastEntry((v) => v < 3); // ['b', 2]
 col.some((v) => v > 2); // true
 col.every((v) => v > 0); // true
 col.tally((v) => v > 1); // 2
+col.tallyBy((v) => (v > 1 ? 'high' : 'low')); // FlowCollection { high: 2, low: 1 } — counts per derived key
 col.size; // 3
 col.isEmpty(); // false
+col.keys(); // native iterator of keys
+col.values(); // native iterator of values
+col.entries(); // native iterator of [key, value] pairs
 ```
+
+## Mutating
+
+```ts
+col.set('d', 4); // mutates in place, returns the collection
+col.delete('a'); // removes a key, returns true/false
+col.clear(); // removes all entries in place, returns the collection
+```
+
+Prefer `with` and `without` if you'd rather not mutate.
 
 ## Grouping & Splitting
 
@@ -309,6 +372,28 @@ col.toEntries(); // [key, value][]
 col.toKeys(); // key[]
 col.toValues(); // value[]
 ```
+
+## Exports
+
+```ts
+import {
+  FlowList,
+  FlowCollection,
+  listOf,
+  listFrom,
+  collectionOf,
+  collectionFrom,
+} from '@flow-tools-dev/flow-structures';
+```
+
+`listOf`/`listFrom` and `collectionOf`/`collectionFrom` are thin functional wrappers around `FlowList.of`/`FlowList.from` and `FlowCollection.of`/`FlowCollection.from`, for anyone who prefers a plain function call over a static method:
+
+```ts
+listOf([1, 2, 3]); // same as FlowList.of([1, 2, 3])
+collectionFrom({ a: 1 }); // same as FlowCollection.from({ a: 1 })
+```
+
+Type helpers (`Entry`, `Source`, `ListCallback`, `ListPredicate`, `CollectionCallback`) and the `isPlainObject`, `isFunction`, `resolveIfFn` utilities are also exported for anyone building on top of `FlowList`/`FlowCollection` directly.
 
 ---
 
