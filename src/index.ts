@@ -5,9 +5,15 @@ import {
   isPlainObject,
   CollectionCallback,
 } from './collection';
-import { FlowList, ListCallback, ListPredicate } from './list';
+import {
+  FlowList,
+  ListCallback,
+  ListPredicate,
+  isFunction,
+  resolveIfFn,
+} from './list';
 
-export { FlowCollection, FlowList, isPlainObject };
+export { FlowCollection, FlowList, isPlainObject, isFunction, resolveIfFn };
 export type { Entry, Source, ListCallback, ListPredicate, CollectionCallback };
 
 export const listOf = <T>(v: T[]) => FlowList.of(v);
