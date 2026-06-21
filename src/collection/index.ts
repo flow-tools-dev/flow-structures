@@ -282,7 +282,7 @@ export class FlowCollection<K, V> {
       const k = fn(v, key, this);
       acc.set(k, (acc.get(k) ?? 0) + 1);
     }
-    return acc;
+    return new FlowCollection(acc);
   }
 
   /**

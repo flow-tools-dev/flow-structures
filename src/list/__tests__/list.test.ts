@@ -1074,6 +1074,77 @@ describe('difference', () => {
   });
 });
 
+describe('differenceBy', () => {
+  it('excludes elements with a matching key in the given lists, by property key', () => {
+    const list = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+      { id: 3, v: 'c' },
+    ]);
+    expect(list.differenceBy('id', [{ id: 2, v: 'x' }]).toArray()).toEqual([
+      { id: 1, v: 'a' },
+      { id: 3, v: 'c' },
+    ]);
+  });
+
+  it('excludes elements with a matching key, by transform function', () => {
+    const list = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+      { id: 3, v: 'c' },
+    ]);
+    expect(
+      list.differenceBy((x) => x.id, [{ id: 2, v: 'x' }]).toArray(),
+    ).toEqual([
+      { id: 1, v: 'a' },
+      { id: 3, v: 'c' },
+    ]);
+  });
+
+  it('accepts FlowList instances', () => {
+    const list = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+    ]);
+    expect(
+      list.differenceBy('id', FlowList.of([{ id: 2, v: 'x' }])).toArray(),
+    ).toEqual([{ id: 1, v: 'a' }]);
+  });
+
+  it('accepts multiple lists', () => {
+    const list = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+      { id: 3, v: 'c' },
+    ]);
+    expect(
+      list
+        .differenceBy('id', [{ id: 2, v: 'x' }], [{ id: 3, v: 'y' }])
+        .toArray(),
+    ).toEqual([{ id: 1, v: 'a' }]);
+  });
+
+  it('preserves duplicates already present in the source list', () => {
+    const list = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 1, v: 'b' },
+      { id: 2, v: 'c' },
+    ]);
+    expect(list.differenceBy('id', [{ id: 2, v: 'x' }]).toArray()).toEqual([
+      { id: 1, v: 'a' },
+      { id: 1, v: 'b' },
+    ]);
+  });
+
+  it('returns all elements if no matches', () => {
+    const list = FlowList.of([{ id: 1 }, { id: 2 }]);
+    expect(list.differenceBy('id', [{ id: 99 }]).toArray()).toEqual([
+      { id: 1 },
+      { id: 2 },
+    ]);
+  });
+});
+
 describe('xor', () => {
   it('returns elements unique to a single list', () => {
     expect(FlowList.of([1, 2, 3]).xor([2, 3, 4]).toArray()).toEqual([1, 4]);
@@ -1099,6 +1170,61 @@ describe('xor', () => {
 
   it('returns an empty list when all elements are shared', () => {
     expect(FlowList.of([1, 2]).xor([1, 2]).toArray()).toEqual([]);
+  });
+});
+
+describe('xorBy', () => {
+  it('returns elements present in exactly one list, by property key', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'a1' },
+      { id: 2, v: 'a2' },
+      { id: 3, v: 'a3' },
+    ]);
+    const b = [
+      { id: 2, v: 'b2' },
+      { id: 4, v: 'b4' },
+    ];
+    const c = [
+      { id: 3, v: 'c3' },
+      { id: 4, v: 'c4' },
+      { id: 5, v: 'c5' },
+    ];
+    expect(a.xorBy('id', b, c).toArray()).toEqual([
+      { id: 1, v: 'a1' },
+      { id: 5, v: 'c5' },
+    ]);
+  });
+
+  it('returns elements present in exactly one list, by transform function', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'a1' },
+      { id: 2, v: 'a2' },
+    ]);
+    const b = [{ id: 2, v: 'b2' }];
+    expect(a.xorBy((x) => x.id, b).toArray()).toEqual([{ id: 1, v: 'a1' }]);
+  });
+
+  it('deduplicates a key that appears multiple times within the source list', () => {
+    const a = FlowList.of([
+      { id: 9, v: 'first' },
+      { id: 9, v: 'second' },
+      { id: 10, v: 'third' },
+    ]);
+    const b = [{ id: 10, v: 'other' }];
+    expect(a.xorBy('id', b).toArray()).toEqual([{ id: 9, v: 'first' }]);
+  });
+
+  it('returns an empty list when all keys are shared', () => {
+    const a = FlowList.of([{ id: 1 }, { id: 2 }]);
+    const b = [{ id: 1 }, { id: 2 }];
+    expect(a.xorBy('id', b).toArray()).toEqual([]);
+  });
+
+  it('accepts FlowList instances', () => {
+    const a = FlowList.of([{ id: 1 }, { id: 2 }]);
+    expect(
+      a.xorBy('id', FlowList.of([{ id: 2 }, { id: 3 }])).toArray(),
+    ).toEqual([{ id: 1 }, { id: 3 }]);
   });
 });
 
@@ -1128,6 +1254,66 @@ describe('intersection', () => {
   });
 });
 
+describe('intersectionBy', () => {
+  it('returns elements with a key present in all given lists, by property key', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+      { id: 3, v: 'c' },
+    ]);
+    const b = [{ id: 2, v: 'x' }];
+    const c = [
+      { id: 2, v: 'y' },
+      { id: 3, v: 'z' },
+    ];
+    expect(a.intersectionBy('id', b, c).toArray()).toEqual([{ id: 2, v: 'b' }]);
+  });
+
+  it('returns elements with a key present in all given lists, by transform function', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+    ]);
+    const b = [{ id: 2, v: 'x' }];
+    expect(a.intersectionBy((x) => x.id, b).toArray()).toEqual([
+      { id: 2, v: 'b' },
+    ]);
+  });
+
+  it('deduplicates results by the resolved key, keeping the first match', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'first' },
+      { id: 1, v: 'second' },
+      { id: 2, v: 'third' },
+    ]);
+    const b = [{ id: 1, v: 'x' }];
+    expect(a.intersectionBy('id', b).toArray()).toEqual([
+      { id: 1, v: 'first' },
+    ]);
+  });
+
+  it('returns an empty list when there is no overlap across all lists', () => {
+    const a = FlowList.of([{ id: 1 }, { id: 2 }]);
+    const b = [{ id: 3 }];
+    expect(a.intersectionBy('id', b).toArray()).toEqual([]);
+  });
+
+  it('accepts FlowList instances', () => {
+    const a = FlowList.of([{ id: 1 }, { id: 2 }]);
+    expect(a.intersectionBy('id', FlowList.of([{ id: 2 }])).toArray()).toEqual([
+      { id: 2 },
+    ]);
+  });
+
+  it('requires the key to be present in every given list, not just one', () => {
+    const a = FlowList.of([{ id: 1 }, { id: 2 }, { id: 3 }]);
+    const b = [{ id: 2 }];
+    const c = [{ id: 2 }, { id: 3 }];
+    // id 3 is only in `c`, not `b` -- should be excluded
+    expect(a.intersectionBy('id', b, c).toArray()).toEqual([{ id: 2 }]);
+  });
+});
+
 describe('union', () => {
   it('returns all unique elements across all lists', () => {
     expect(FlowList.of([1, 2]).union([2, 3]).toArray()).toEqual([1, 2, 3]);
@@ -1147,6 +1333,63 @@ describe('union', () => {
 
   it('deduplicates within a single list', () => {
     expect(FlowList.of([1, 1, 2]).union([2, 3]).toArray()).toEqual([1, 2, 3]);
+  });
+});
+
+describe('unionBy', () => {
+  it('merges and deduplicates by property key, keeping the first occurrence', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+    ]);
+    const b = [
+      { id: 2, v: 'x' },
+      { id: 3, v: 'y' },
+    ];
+    expect(a.unionBy('id', b).toArray()).toEqual([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+      { id: 3, v: 'y' },
+    ]);
+  });
+
+  it('merges and deduplicates by transform function', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+    ]);
+    const b = [{ id: 2, v: 'x' }];
+    expect(a.unionBy((x) => x.id, b).toArray()).toEqual([
+      { id: 1, v: 'a' },
+      { id: 2, v: 'b' },
+    ]);
+  });
+
+  it('accepts FlowList instances', () => {
+    const a = FlowList.of([{ id: 1 }]);
+    expect(
+      a.unionBy('id', FlowList.of([{ id: 1 }, { id: 2 }])).toArray(),
+    ).toEqual([{ id: 1 }, { id: 2 }]);
+  });
+
+  it('handles multiple lists', () => {
+    const a = FlowList.of([{ id: 1 }]);
+    expect(a.unionBy('id', [{ id: 2 }], [{ id: 3 }]).toArray()).toEqual([
+      { id: 1 },
+      { id: 2 },
+      { id: 3 },
+    ]);
+  });
+
+  it('deduplicates a key that appears multiple times within the source list', () => {
+    const a = FlowList.of([
+      { id: 1, v: 'first' },
+      { id: 1, v: 'second' },
+    ]);
+    expect(a.unionBy('id', [{ id: 2, v: 'third' }]).toArray()).toEqual([
+      { id: 1, v: 'first' },
+      { id: 2, v: 'third' },
+    ]);
   });
 });
 

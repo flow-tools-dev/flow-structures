@@ -622,6 +622,73 @@ describe('FlowCollection', () => {
     });
   });
 
+  describe('tallyBy', () => {
+    it('counts occurrences of each derived key', () => {
+      const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
+      const result = collection.tallyBy((v) => (v % 2 === 0 ? 'even' : 'odd'));
+      expect(result.get('odd')).toBe(2);
+      expect(result.get('even')).toBe(2);
+    });
+
+    it('returns a FlowCollection', () => {
+      const collection = FlowCollection.from({ a: 1 });
+      const result = collection.tallyBy((v) => v);
+      expect(result).toBeInstanceOf(FlowCollection);
+    });
+
+    it('counts a key that only one value produces as 1', () => {
+      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const result = collection.tallyBy((v) => v);
+      expect(result.get(1)).toBe(1);
+      expect(result.get(2)).toBe(1);
+    });
+
+    it('handles numeric grouping keys, including 0', () => {
+      const collection = FlowCollection.from({ a: 0, b: 0, c: 1 });
+      const result = collection.tallyBy((v) => v);
+      expect(result.get(0)).toBe(2);
+      expect(result.get(1)).toBe(1);
+    });
+
+    it('returns an empty FlowCollection for an empty collection', () => {
+      const collection = FlowCollection.of([]);
+      const result = collection.tallyBy(() => 'x');
+      expect(result.isEmpty()).toBe(true);
+    });
+
+    it('passes value, key, and the collection to the callback', () => {
+      const collection = FlowCollection.from({ a: 1, b: 2 });
+      const seen: Array<[number, string]> = [];
+      collection.tallyBy((v, k, coll) => {
+        seen.push([v, k]);
+        expect(coll).toBe(collection);
+        return v;
+      });
+      expect(seen).toContainEqual([1, 'a']);
+      expect(seen).toContainEqual([2, 'b']);
+    });
+
+    it('does not mutate the original collection', () => {
+      const collection = FlowCollection.from({ a: 1, b: 2 });
+      collection.tallyBy((v) => v);
+      expect(collection.toObject()).toEqual({ a: 1, b: 2 });
+    });
+
+    it('returns a new collection, not the original', () => {
+      const collection = FlowCollection.from({ a: 1 });
+      const result = collection.tallyBy((v) => v);
+      expect(result).not.toBe(collection);
+    });
+
+    it('is chainable with other FlowCollection methods', () => {
+      const collection = FlowCollection.from({ a: 1, b: 2, c: 3, d: 4 });
+      const result = collection
+        .tallyBy((v) => (v % 2 === 0 ? 'even' : 'odd'))
+        .toObject();
+      expect(result).toEqual({ odd: 2, even: 2 });
+    });
+  });
+
   describe('forEach', () => {
     it('should iterate over all entries', () => {
       const collection = FlowCollection.from(mockObj);
