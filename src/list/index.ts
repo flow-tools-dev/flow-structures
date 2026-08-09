@@ -1,3 +1,6 @@
+import { resolveIfFn } from '../utils';
+import { Unwrap } from '../utils/types';
+
 export type ListPredicate<T> = (
   value: T,
   index: number,
@@ -9,12 +12,6 @@ export type ListCallback<T, R> = (
   index: number,
   list: FlowList<T>,
 ) => R;
-
-export const isFunction = (fn: unknown): fn is Function => typeof fn === 'function';
-export const resolveIfFn =
-  <T, K>(pOrF: keyof T | ((item: T) => K)) =>
-  (v: T): K =>
-    isFunction(pOrF) ? pOrF(v) : (v[pOrF] as unknown as K);
 
 export class FlowList<T> {
   private array: T[];
@@ -146,6 +143,25 @@ export class FlowList<T> {
    */
   map<U>(fn: (value: T, index: number, list: FlowList<T>) => U): FlowList<U> {
     return FlowList.of<U>(this.array.map((v, i) => fn(v, i, this)));
+  }
+
+  /**
+   * IMMUTABLE
+   * Returns a new list with each value transformed by `fn`, where every value
+   * in the list is assumed to be a promise. `fn` receives the resolved value,
+   * never the promise itself.
+   * @param fn - A callback receiving each resolved value, its index, and the list.
+   * @returns A new `FlowList` whose values are promises resolving to the
+   * mapped result.
+   */
+  mapAsync<U>(
+    fn: (value: Unwrap<T>, index: number, list: FlowList<T>) => U,
+  ): FlowList<Promise<U>> {
+    return FlowList.of<Promise<U>>(
+      this.array.map((v, i) =>
+        (v as Promise<Unwrap<T>>).then((val) => fn(val, i, this)),
+      ),
+    );
   }
 
   /**
@@ -1119,5 +1135,22 @@ export class FlowList<T> {
    */
   toObject() {
     return Object.fromEntries<T>(this.array as [PropertyKey, T][]);
+  }
+
+  /**
+   * Wraps the array in a Promise.all, and returns a Flow List of the resolved values.
+   * @returns a promise that resolves to the Flow List of values.
+   */
+  async toResolvedAll() {
+    return FlowList.of(await Promise.all(this.array));
+  }
+
+  /**
+   * Wraps the array in a Promise.allSettled, and returns a Flow List of the resolved Values.
+   * @returns A promise that resolves to an a Flow List of `{ status, value }` or
+   * `{ status, reason }` result objects, in original order.
+   */
+  async toResolvedAllSettled() {
+    return FlowList.of(await Promise.allSettled(this.array));
   }
 }
