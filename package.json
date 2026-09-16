@@ -27,6 +27,9 @@
     "type": "git",
     "url": "git+https://github.com/flow-tools-dev/flow-structures.git"
   },
+  "publishConfig": {
+    "provenance": true
+  },
   "license": "MIT",
   "author": "Adam Allison",
   "type": "module",
