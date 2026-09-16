@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { FlowCollection, isPlainObject } from '../index';
+import { FlowCollection } from '../index';
 
 const mockEntries = [
   ['a', 1],
@@ -1161,25 +1161,52 @@ describe('FlowCollection', () => {
   });
 });
 
-describe('utils', () => {
-  describe('isPlainObject', () => {
-    it('is true for object', () => {
-      expect(isPlainObject({})).toBeTruthy();
-    });
-    it('is false for everything else', () => {
-      [
-        '',
-        0,
-        [],
-        new Map(),
-        new Set(),
-        Infinity,
-        null,
-        undefined,
-        true,
-        false,
-        new FlowCollection(),
-      ].forEach((v) => expect(isPlainObject(v)).toBeFalsy());
+describe('mapAsync', () => {
+  it('resolves promise values before calling fn, preserving keys', async () => {
+    const collection = FlowCollection.of([
+      ['a', Promise.resolve(2)],
+      ['b', Promise.resolve(3)],
+    ]);
+    const result = collection.mapAsync((value) => value * 2);
+    expect(result.get('a')).toBeInstanceOf(Promise);
+    expect(result.get('b')).toBeInstanceOf(Promise);
+    await expect(result.get('a')).resolves.toBe(4);
+    await expect(result.get('b')).resolves.toBe(6);
+  });
+
+  it('returns a new FlowCollection instance', () => {
+    expect(
+      FlowCollection.of([['a', Promise.resolve(1)]]).mapAsync((v) => v),
+    ).toBeInstanceOf(FlowCollection);
+  });
+});
+
+describe('toResolvedAll', () => {
+  it('resolves all values and preserves keys', async () => {
+    const collection = FlowCollection.of([
+      ['a', Promise.resolve(2)],
+      ['b', Promise.resolve(3)],
+    ]);
+    const result = await collection.toResolvedAll();
+    expect(result.get('a')).toBe(2);
+    expect(result.get('b')).toBe(3);
+  });
+});
+
+describe('toResolvedAllSettled', () => {
+  it('returns settled Promise results keyed by original keys', async () => {
+    const collection = FlowCollection.of([
+      ['a', Promise.resolve(1)],
+      ['b', Promise.resolve(2)],
+      ['c', Promise.reject('boom')],
+    ]);
+    const result = await collection.toResolvedAllSettled();
+
+    expect(result.get('a')).toEqual({ status: 'fulfilled', value: 1 });
+    expect(result.get('b')).toEqual({ status: 'fulfilled', value: 2 });
+    expect(result.get('c')).toEqual({
+      reason: 'boom',
+      status: 'rejected',
     });
   });
 });

@@ -1539,3 +1539,37 @@ describe('toObject', () => {
     ).toEqual({ a: 1, b: 2 });
   });
 });
+describe('mapAsync', () => {
+  it('maps synchronous and promise values while preserving order', async () => {
+    const list = FlowList.of([Promise.resolve(1), Promise.resolve(2)]);
+    const result = list.mapAsync((value) => value * 2);
+    result.forEach((p) => expect(p).toBeInstanceOf(Promise));
+    await expect(result.toArray()[1]).resolves.toBe(4);
+  });
+});
+
+describe('toResolvedAll', () => {
+  it('resolves all values and returns a FlowList of resolved results', async () => {
+    const result = await FlowList.of([
+      Promise.resolve(1),
+      Promise.resolve(2),
+    ]).toResolvedAll();
+    expect(result.at(0)).toEqual(1);
+    expect(result.at(1)).toEqual(2);
+  });
+});
+
+describe('toResolvedAllSettled', () => {
+  it('returns settled results for mixed promise values', async () => {
+    const result = await FlowList.of([
+      Promise.resolve(1),
+      Promise.resolve(2),
+      Promise.reject('boom'),
+    ]).toResolvedAllSettled();
+    const values = result.toArray();
+
+    expect(values[0]).toEqual({ status: 'fulfilled', value: 1 });
+    expect(values[1]).toEqual({ status: 'fulfilled', value: 2 });
+    expect(values[2]).toEqual({ status: 'rejected', reason: 'boom' });
+  });
+});

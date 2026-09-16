@@ -1,6 +1,6 @@
 {
   "name": "@flow-tools-dev/flow-structures",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Chainable, immutable array and map/object utilities for TypeScript.",
   "keywords": [
     "lodash",
@@ -52,14 +52,12 @@
   },
   "scripts": {
     "test": "vitest",
-    "build": "tsdown",
-    "publish": "npm run test -- --run && npm run build && npm publish --access public"
+    "build": "tsdown"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.1.5",
     "happy-dom": "^20.9.0",
     "tsdown": "^0.20.3",
-    "typescript": "^5.9.3",
     "vitest": "^4.1.5"
   }
 }

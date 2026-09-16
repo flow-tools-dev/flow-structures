@@ -1,3 +1,6 @@
+import { isPlainObject } from '../utils';
+import { Unwrap } from '../utils/types';
+
 export type Entry<K, V> = readonly [K, V];
 export type CollectionCallback<K, V, R> = (
   value: V,
@@ -8,15 +11,6 @@ export type CollectionCallback<K, V, R> = (
 export type Source<K, V> =
   | Iterable<readonly [K, V]>
   | (K extends PropertyKey ? Record<K, V> : never);
-
-export const isPlainObject = (
-  value: unknown,
-): value is Record<PropertyKey, any> => {
-  if (typeof value !== 'object' || value === null) return false;
-
-  const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
-};
 
 export class FlowCollection<K, V> {
   private collection: Map<K, V>;
@@ -358,6 +352,29 @@ export class FlowCollection<K, V> {
 
   /**
    * IMMUTABLE
+   * Returns a new collection with each value transformed by `fn`, where every
+   * value in the collection is assumed to be a promise. `fn` receives the
+   * resolved value, never the promise itself. Keys are preserved.
+   * @param fn - A callback receiving each resolved value, its key, and the
+   * collection.
+   * @returns A new `FlowCollection` whose values are promises resolving to
+   * the mapped result.
+   */
+  mapAsync<U>(
+    fn: (value: Unwrap<V>, key: K, collection: FlowCollection<K, V>) => U,
+  ): FlowCollection<K, Promise<U>> {
+    const m = new Map<K, Promise<U>>();
+    for (const [k, v] of this.collection) {
+      m.set(
+        k,
+        (v as Promise<Unwrap<V>>).then((val) => fn(val, k, this)),
+      );
+    }
+    return new FlowCollection(m);
+  }
+
+  /**
+   * IMMUTABLE
    * Returns a new collection with both keys and values transformed by `fn`.
    * @param fn - A callback receiving each value, its key, and the collection. Returns a `[newKey, newValue]` tuple.
    * @returns A new `FlowCollection` with the remapped entries.
@@ -665,6 +682,33 @@ export class FlowCollection<K, V> {
    */
   toMap() {
     return new Map(this.collection);
+  }
+
+  /**
+   * Wraps the collection's values in a `Promise.all` and returns a
+   * `FlowCollection` of the resolved values, keyed the same as the original.
+   * Mirrors `Promise.all` — if any value rejects, the returned promise
+   * rejects immediately, discarding the rest.
+   * @returns A promise that resolves to a `FlowCollection` of the resolved
+   * values.
+   */
+  async toResolvedAll() {
+    const keys = [...this.collection.keys()];
+    const vals = await Promise.all([...this.collection.values()]);
+    return new FlowCollection(new Map(keys.map((k, i) => [k, vals[i]])));
+  }
+
+  /**
+   * Wraps the collection's values in a `Promise.allSettled` and returns a
+   * `FlowCollection` of the settled results, keyed the same as the original.
+   * No individual rejection short-circuits the rest.
+   * @returns A promise that resolves to a `FlowCollection` of `{ status, value }`
+   * or `{ status, reason }` result objects.
+   */
+  async toResolvedAllSettled() {
+    const keys = [...this.collection.keys()];
+    const vals = await Promise.allSettled([...this.collection.values()]);
+    return new FlowCollection(new Map(keys.map((k, i) => [k, vals[i]])));
   }
 
   /**
